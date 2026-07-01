@@ -29,7 +29,7 @@ export class UserAccountRepository {
   ): Promise<UserAccount> {
     const existing = await this.store.findByUserId(userId);
     if (existing) {
-      throw new Error("Account already exists");
+      return existing;
     }
 
     const name = input.name.trim();
