@@ -1,10 +1,12 @@
 import {
+  getDisplayStages,
+  resolvePipelineStages,
   TERMINAL_STAGES,
   type Job,
-  type StageList,
   type TerminalStage,
 } from "@jp/shared-types";
-import { DEFAULT_PIPELINE_STAGES } from "./defaults.js";
+
+export { getDisplayStages, resolvePipelineStages };
 
 export interface TerminalStageEvent {
   jobId: string;
@@ -19,33 +21,6 @@ export interface StageChangeResult {
 
 function isTerminalStage(stage: string): stage is TerminalStage {
   return (TERMINAL_STAGES as readonly string[]).includes(stage);
-}
-
-export function resolvePipelineStages(stageList?: StageList): string[] {
-  const custom = stageList?.filter((stage) => stage.trim().length > 0) ?? [];
-  const pipeline = custom.length > 0 ? custom : [...DEFAULT_PIPELINE_STAGES];
-  return [...pipeline, ...TERMINAL_STAGES];
-}
-
-/** Stages shown in the UI: pipeline defaults/custom list plus any visited stages. */
-export function getDisplayStages(job: Job, stageList?: StageList): string[] {
-  const pipeline = resolvePipelineStages(stageList);
-  const visited = Object.keys(job.stageHistory);
-  const merged = [...pipeline];
-
-  for (const stage of visited) {
-    if (!merged.includes(stage)) {
-      merged.push(stage);
-    }
-  }
-
-  for (const terminal of TERMINAL_STAGES) {
-    if (!merged.includes(terminal)) {
-      merged.push(terminal);
-    }
-  }
-
-  return merged;
 }
 
 export function applyStageChange(

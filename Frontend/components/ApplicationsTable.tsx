@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import type { Job } from "@jp/shared-types";
-import { searchAndFilterJobs } from "@jp/backend";
+import { searchAndFilterJobs } from "@jp/shared-types";
 
 interface ApplicationsTableProps {
   jobs: Job[];

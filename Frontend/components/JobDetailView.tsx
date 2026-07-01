@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import type { Job } from "@jp/shared-types";
 import { TERMINAL_STAGES } from "@jp/shared-types";
-import { getDisplayStages } from "@jp/backend";
+import { getDisplayStages } from "@jp/shared-types";
 import {
   archiveJob,
   deleteJob,
