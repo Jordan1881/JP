@@ -26,5 +26,12 @@ export {
   type DashboardStats,
   type ApiHealthResponse,
 } from "./job.js";
+export {
+  SUBMITTED_RESUME_STAGE,
+  DEFAULT_PIPELINE_STAGES,
+  getDisplayStages,
+  resolvePipelineStages,
+  searchAndFilterJobs,
+} from "./pipeline.js";
 export type { AppNotification, NotificationType } from "./notifications.js";
 export type { AgentChatMessage, ProfileInterviewState } from "./agents.js";

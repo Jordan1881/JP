@@ -1,12 +1,9 @@
-export const SUBMITTED_RESUME_STAGE = "Submitted resume";
-
-export const DEFAULT_PIPELINE_STAGES = [
+import {
+  DEFAULT_PIPELINE_STAGES,
   SUBMITTED_RESUME_STAGE,
-  "Phone screen",
-  "Technical interview",
-  "Final interview",
-  "Offer",
-] as const;
+} from "@jp/shared-types";
+
+export { DEFAULT_PIPELINE_STAGES, SUBMITTED_RESUME_STAGE };
 
 export function normalizeSubmissionDate(submissionDate: string): string {
   const parsed = new Date(submissionDate);
