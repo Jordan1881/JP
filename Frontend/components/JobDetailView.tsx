@@ -5,7 +5,16 @@ import { useCallback, useEffect, useState } from "react";
 import type { Job } from "@jp/shared-types";
 import { TERMINAL_STAGES } from "@jp/shared-types";
 import { getDisplayStages } from "@jp/backend";
-import { fetchJob, patchJob } from "@/lib/jobs-api";
+import {
+  archiveJob,
+  deleteJob,
+  fetchJob,
+  generateAnnouncement,
+  generateCoverLetter,
+  patchJob,
+} from "@/lib/jobs-api";
+import { fetchPreferences } from "@/lib/preferences-api";
+import { fetchProfile } from "@/lib/profile-api";
 import { cn } from "@/lib/utils";
 
 interface JobDetailViewProps {
@@ -35,6 +44,10 @@ export function JobDetailView({ jobId }: JobDetailViewProps) {
   const [error, setError] = useState<string | null>(null);
   const [savingNotes, setSavingNotes] = useState(false);
   const [changingStage, setChangingStage] = useState<string | null>(null);
+  const [stageList, setStageList] = useState<string[]>([]);
+  const [profileComplete, setProfileComplete] = useState(false);
+  const [revision, setRevision] = useState("");
+  const [generating, setGenerating] = useState(false);
 
   const loadJob = useCallback(async () => {
     setLoading(true);
@@ -43,6 +56,12 @@ export function JobDetailView({ jobId }: JobDetailViewProps) {
       const nextJob = await fetchJob(jobId);
       setJob(nextJob);
       setNotes(nextJob.notes ?? "");
+      const [preferences, profile] = await Promise.all([
+        fetchPreferences(),
+        fetchProfile(),
+      ]);
+      setStageList(preferences.stageList);
+      setProfileComplete(Boolean(profile?.interviewCompletedAt));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load job");
     } finally {
@@ -110,7 +129,7 @@ export function JobDetailView({ jobId }: JobDetailViewProps) {
     );
   }
 
-  const stages = getDisplayStages(job);
+  const stages = getDisplayStages(job, stageList);
   const historyEntries = Object.entries(job.stageHistory).sort(
     ([, left], [, right]) => right.localeCompare(left),
   );
@@ -246,6 +265,122 @@ export function JobDetailView({ jobId }: JobDetailViewProps) {
             {savingNotes ? "Saving…" : "Save notes"}
           </button>
         </section>
+
+        {job.status === "active" ? (
+          <section className="mt-10 flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={() => {
+                if (
+                  confirm(
+                    "Archive this job? Manual archives are permanently deleted after 30 days.",
+                  )
+                ) {
+                  void archiveJob(jobId).then(() => {
+                    window.location.href = "/archive";
+                  });
+                }
+              }}
+              className="rounded-md border border-border px-4 py-2 text-xs uppercase tracking-widest"
+            >
+              Archive job
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (confirm("Permanently delete this job?")) {
+                  void deleteJob(jobId).then(() => {
+                    window.location.href = "/";
+                  });
+                }
+              }}
+              className="rounded-md border border-red-500/40 px-4 py-2 text-xs uppercase tracking-widest text-red-200"
+            >
+              Delete permanently
+            </button>
+          </section>
+        ) : null}
+
+        <section className="mt-10 rounded-xl border border-border bg-card/80 p-6">
+          <h2 className="text-sm font-semibold tracking-widest text-muted-foreground uppercase">
+            Cover letter
+          </h2>
+          <button
+            type="button"
+            disabled={!profileComplete || generating}
+            onClick={() => {
+              setGenerating(true);
+              void generateCoverLetter(jobId, { action: "generate" })
+                .then((result) => setJob(result.job))
+                .catch((err: unknown) =>
+                  setError(err instanceof Error ? err.message : "Generation failed"),
+                )
+                .finally(() => setGenerating(false));
+            }}
+            className="mt-4 rounded-md bg-primary px-4 py-2 text-xs uppercase tracking-widest text-primary-foreground disabled:opacity-50"
+          >
+            {profileComplete ? "Generate cover letter" : "Complete profile first"}
+          </button>
+          {job.coverLetter ? (
+            <>
+              <pre className="mt-4 whitespace-pre-wrap text-sm text-foreground">
+                {job.coverLetter}
+              </pre>
+              <textarea
+                className={cn(inputClassName, "mt-4")}
+                rows={2}
+                value={revision}
+                onChange={(event) => setRevision(event.target.value)}
+                placeholder='Revision instruction, e.g. "make it shorter"'
+              />
+              <button
+                type="button"
+                disabled={!revision.trim() || generating}
+                onClick={() => {
+                  setGenerating(true);
+                  void generateCoverLetter(jobId, {
+                    action: "revise",
+                    instruction: revision,
+                  })
+                    .then((result) => {
+                      setJob(result.job);
+                      setRevision("");
+                    })
+                    .finally(() => setGenerating(false));
+                }}
+                className="mt-3 rounded-md border border-border px-4 py-2 text-xs uppercase tracking-widest"
+              >
+                Revise draft
+              </button>
+            </>
+          ) : null}
+        </section>
+
+        {job.currentStage === "Accepted" ? (
+          <section className="mt-10 rounded-xl border border-border bg-card/80 p-6">
+            <h2 className="text-sm font-semibold tracking-widest text-muted-foreground uppercase">
+              Job announcement
+            </h2>
+            <button
+              type="button"
+              disabled={!profileComplete || generating}
+              onClick={() => {
+                setGenerating(true);
+                void generateAnnouncement(jobId, { action: "generate" })
+                  .then((result) => setJob(result.job))
+                  .finally(() => setGenerating(false));
+              }}
+              className="mt-4 rounded-md bg-primary px-4 py-2 text-xs uppercase tracking-widest text-primary-foreground disabled:opacity-50"
+            >
+              Generate announcement
+            </button>
+            {job.announcement ? (
+              <pre className="mt-4 whitespace-pre-wrap text-sm text-foreground">
+                {job.announcement}
+              </pre>
+            ) : null}
+          </section>
+        ) : null}
       </div>
     </div>
   );

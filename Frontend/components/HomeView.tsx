@@ -6,6 +6,7 @@ import { gsap, registerGsapPlugins } from "@/lib/gsap";
 import { AddJobForm } from "@/components/AddJobForm";
 import { ApplicationsTable } from "@/components/ApplicationsTable";
 import { HeroVisual } from "@/components/HeroVisual";
+import { NotificationBell } from "@/components/NotificationBell";
 import { NavUserMenu } from "@/components/NavUserMenu";
 import { useAuth } from "@/components/AuthProvider";
 import { authSignOut, isAuthConfigured } from "@/lib/auth";
@@ -157,6 +158,12 @@ export function HomeView({ jobs }: HomeViewProps) {
                 {link.label}
               </button>
             ))}
+            <Link href="/dashboard" className="text-sm text-muted-foreground hover:text-foreground">
+              Dashboard
+            </Link>
+            <Link href="/archive" className="text-sm text-muted-foreground hover:text-foreground">
+              Archive
+            </Link>
           </div>
 
           <div className="flex items-center gap-3">
@@ -168,10 +175,13 @@ export function HomeView({ jobs }: HomeViewProps) {
               Add application
             </button>
             {isAuthConfigured() ? (
-              <NavUserMenu
+              <>
+                <NotificationBell />
+                <NavUserMenu
                 userName={account?.name}
                 onSignOut={() => void handleSignOut()}
-              />
+                />
+              </>
             ) : (
               <Link
                 href="/login"

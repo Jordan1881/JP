@@ -1,12 +1,18 @@
 import { randomUUID } from "node:crypto";
-import type { CreateJobInput, Job, PatchJobInput } from "@jp/shared-types";
+import type { CreateJobInput, Job, ListJobsQuery, PatchJobInput } from "@jp/shared-types";
 import {
   applyStageChange,
   createInitialStageState,
   SUBMITTED_RESUME_STAGE,
   type TerminalStageEvent,
 } from "../stage-pipeline-manager/index.js";
-import type { JobStore, ListActiveJobsParams } from "./types.js";
+import {
+  archiveJob,
+  archiveReasonForTerminalStage,
+  restoreJob,
+} from "../archive-lifecycle-manager/index.js";
+import { searchAndFilterJobs } from "../search-filter-engine/index.js";
+import type { JobStore } from "./types.js";
 
 function optionalTrim(value: string | undefined): string | undefined {
   const trimmed = value?.trim();
@@ -75,15 +81,13 @@ export class JobRepository {
     return this.store.insert(job);
   }
 
-  async listActive(params: ListActiveJobsParams): Promise<Job[]> {
-    const sortOrder = params.sortOrder ?? "desc";
-    const jobs = await this.store.listByUser(params.userId);
-    const active = jobs.filter((job) => job.status === "active");
+  async list(userId: string, query: ListJobsQuery = {}): Promise<Job[]> {
+    const jobs = await this.store.listByUser(userId);
+    return searchAndFilterJobs(jobs, query);
+  }
 
-    return active.sort((left, right) => {
-      const comparison = left.lastUpdatedAt.localeCompare(right.lastUpdatedAt);
-      return sortOrder === "desc" ? -comparison : comparison;
-    });
+  async listActive(userId: string, sortOrder: "asc" | "desc" = "desc"): Promise<Job[]> {
+    return this.list(userId, { status: "active", sortOrder });
   }
 
   async patch(
@@ -107,6 +111,22 @@ export class JobRepository {
       };
     }
 
+    if (input.coverLetter !== undefined) {
+      job = {
+        ...job,
+        coverLetter: input.coverLetter.trim() || undefined,
+        lastUpdatedAt: new Date().toISOString(),
+      };
+    }
+
+    if (input.announcement !== undefined) {
+      job = {
+        ...job,
+        announcement: input.announcement.trim() || undefined,
+        lastUpdatedAt: new Date().toISOString(),
+      };
+    }
+
     let terminalStageEvent: TerminalStageEvent | undefined;
 
     if (input.stage !== undefined) {
@@ -115,10 +135,64 @@ export class JobRepository {
       terminalStageEvent = result.terminalStageEvent;
       if (terminalStageEvent) {
         this.emitTerminalStage(terminalStageEvent);
+        job = archiveJob(
+          job,
+          archiveReasonForTerminalStage(terminalStageEvent.stage),
+          job.lastUpdatedAt,
+        );
       }
     }
 
     const updated = await this.store.update(job);
     return { job: updated, terminalStageEvent };
+  }
+
+  async archiveManual(userId: string, jobId: string): Promise<Job> {
+    const existing = await this.store.findById(jobId, userId);
+    if (!existing) {
+      throw new Error("Job not found");
+    }
+    if (existing.status === "archived") {
+      throw new Error("Job is already archived");
+    }
+    return this.store.update(archiveJob(existing, "manual"));
+  }
+
+  async archiveNoResponse(userId: string, jobId: string): Promise<Job> {
+    const existing = await this.store.findById(jobId, userId);
+    if (!existing) {
+      throw new Error("Job not found");
+    }
+    return this.store.update(archiveJob(existing, "no_response"));
+  }
+
+  async restore(userId: string, jobId: string): Promise<Job> {
+    const existing = await this.store.findById(jobId, userId);
+    if (!existing) {
+      throw new Error("Job not found");
+    }
+    if (existing.status !== "archived") {
+      throw new Error("Job is not archived");
+    }
+    return this.store.update(restoreJob(existing));
+  }
+
+  async deletePermanent(userId: string, jobId: string): Promise<void> {
+    const deleted = await this.store.delete(jobId, userId);
+    if (!deleted) {
+      throw new Error("Job not found");
+    }
+  }
+
+  async deleteExpired(userId: string, jobIds: string[]): Promise<number> {
+    let count = 0;
+    for (const jobId of jobIds) {
+      const job = await this.store.findById(jobId, userId);
+      if (job) {
+        await this.store.delete(jobId, userId);
+        count += 1;
+      }
+    }
+    return count;
   }
 }

@@ -1,5 +1,5 @@
 import type { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
-import type { CreateJobInput, PatchJobInput } from "@jp/shared-types";
+import type { ListJobsQuery } from "@jp/shared-types";
 import { getUserId } from "./auth.js";
 import { getDevJobRepository } from "../modules/job-repository/factory.js";
 
@@ -7,7 +7,7 @@ const JSON_HEADERS = { "Content-Type": "application/json" };
 
 function response(statusCode: number, body: unknown): APIGatewayProxyResult {
   return {
-    statusCode: statusCode,
+    statusCode,
     headers: JSON_HEADERS,
     body: JSON.stringify(body),
   };
@@ -18,12 +18,22 @@ function jobIdFromPath(path: string): string | null {
   return match?.[1] ?? null;
 }
 
+function listQuery(event: APIGatewayProxyEvent): ListJobsQuery {
+  const params = event.queryStringParameters ?? {};
+  return {
+    q: params.q,
+    stage: params.stage,
+    status: (params.status as ListJobsQuery["status"]) ?? "active",
+    sortOrder: params.sortOrder === "asc" ? "asc" : "desc",
+  };
+}
+
 export async function listJobsHandler(
   event: APIGatewayProxyEvent,
 ): Promise<APIGatewayProxyResult> {
   try {
     const repository = getDevJobRepository();
-    const jobs = await repository.listActive({ userId: getUserId(event) });
+    const jobs = await repository.list(getUserId(event), listQuery(event));
     return response(200, { jobs });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to list jobs";
@@ -39,7 +49,7 @@ export async function createJobHandler(
   }
 
   try {
-    const input = JSON.parse(event.body) as CreateJobInput;
+    const input = JSON.parse(event.body);
     const repository = getDevJobRepository();
     const job = await repository.create(getUserId(event), input);
     return response(201, { job });
@@ -85,7 +95,7 @@ export async function patchJobHandler(
   }
 
   try {
-    const input = JSON.parse(event.body) as PatchJobInput;
+    const input = JSON.parse(event.body);
     const repository = getDevJobRepository();
     const result = await repository.patch(getUserId(event), jobId, input);
     return response(200, result);
@@ -94,5 +104,62 @@ export async function patchJobHandler(
     const statusCode =
       message.includes("not found") || message.includes("required") ? 400 : 500;
     return response(statusCode, { error: message });
+  }
+}
+
+export async function deleteJobHandler(
+  event: APIGatewayProxyEvent,
+): Promise<APIGatewayProxyResult> {
+  const jobId = jobIdFromPath(event.path);
+  if (!jobId) {
+    return response(400, { error: "Job id is required" });
+  }
+
+  try {
+    await getDevJobRepository().deletePermanent(getUserId(event), jobId);
+    return response(200, { deleted: true });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Failed to delete job";
+    return response(message.includes("not found") ? 400 : 500, { error: message });
+  }
+}
+
+export async function archiveJobHandler(
+  event: APIGatewayProxyEvent,
+): Promise<APIGatewayProxyResult> {
+  const jobId = jobIdFromPath(event.path.replace(/\/archive$/, ""));
+  if (!jobId) {
+    return response(400, { error: "Job id is required" });
+  }
+
+  try {
+    const body = event.body ? JSON.parse(event.body) : {};
+    const repository = getDevJobRepository();
+    const userId = getUserId(event);
+    const job =
+      body.reason === "no_response"
+        ? await repository.archiveNoResponse(userId, jobId)
+        : await repository.archiveManual(userId, jobId);
+    return response(200, { job });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Failed to archive job";
+    return response(message.includes("not found") ? 400 : 500, { error: message });
+  }
+}
+
+export async function restoreJobHandler(
+  event: APIGatewayProxyEvent,
+): Promise<APIGatewayProxyResult> {
+  const jobId = jobIdFromPath(event.path.replace(/\/restore$/, ""));
+  if (!jobId) {
+    return response(400, { error: "Job id is required" });
+  }
+
+  try {
+    const job = await getDevJobRepository().restore(getUserId(event), jobId);
+    return response(200, { job });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Failed to restore job";
+    return response(message.includes("not found") ? 400 : 500, { error: message });
   }
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -11,6 +11,7 @@ import {
   authInputClassName,
 } from "@/components/AuthCard";
 import { deleteAccount } from "@/lib/account-api";
+import { fetchPreferences, updatePreferences } from "@/lib/preferences-api";
 import {
   authDeleteUser,
   authSignOut,
@@ -22,9 +23,40 @@ export default function SettingsPage() {
   const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmDelete, setConfirmDelete] = useState("");
+  const [stageList, setStageList] = useState<string[]>([]);
+  const [staleNotificationsEnabled, setStaleNotificationsEnabled] = useState(true);
+  const [preDeletionWarningsEnabled, setPreDeletionWarningsEnabled] =
+    useState(true);
+  const [newStage, setNewStage] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    void fetchPreferences().then((preferences) => {
+      setStageList(preferences.stageList);
+      setStaleNotificationsEnabled(preferences.staleNotificationsEnabled);
+      setPreDeletionWarningsEnabled(preferences.preDeletionWarningsEnabled);
+    });
+  }, []);
+
+  async function savePreferences() {
+    setSubmitting(true);
+    setError(null);
+    setSuccess(null);
+    try {
+      await updatePreferences({
+        stageList,
+        staleNotificationsEnabled,
+        preDeletionWarningsEnabled,
+      });
+      setSuccess("Preferences saved.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to save preferences");
+    } finally {
+      setSubmitting(false);
+    }
+  }
 
   async function handlePasswordChange(event: FormEvent) {
     event.preventDefault();
@@ -48,7 +80,6 @@ export default function SettingsPage() {
       setError('Type DELETE to confirm account removal.');
       return;
     }
-
     setError(null);
     setSubmitting(true);
     try {
@@ -66,10 +97,10 @@ export default function SettingsPage() {
   return (
     <AuthCard
       title="Settings"
-      subtitle="Password and account security."
+      subtitle="Pipeline stages, notifications, password, and account."
       footer={
-        <Link href="/account" className="text-foreground underline">
-          Back to account
+        <Link href="/" className="text-foreground underline">
+          Home
         </Link>
       }
     >
@@ -77,7 +108,84 @@ export default function SettingsPage() {
         <AuthError message={error} />
         {success ? <p className="text-sm text-emerald-300">{success}</p> : null}
 
-        <form onSubmit={handlePasswordChange} className="space-y-4">
+        <section className="space-y-4">
+          <h2 className="text-sm font-semibold text-foreground">Interview stages</h2>
+          <p className="text-sm text-muted-foreground">
+            Accepted and Rejected stay fixed as terminal outcomes.
+          </p>
+          <ul className="space-y-2">
+            {stageList.map((stage, index) => (
+              <li key={`${stage}-${index}`} className="flex gap-2">
+                <input
+                  className={authInputClassName}
+                  value={stage}
+                  onChange={(event) => {
+                    const next = [...stageList];
+                    next[index] = event.target.value;
+                    setStageList(next);
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setStageList(stageList.filter((_, i) => i !== index))}
+                  className="rounded-md border border-border px-3 text-xs"
+                >
+                  Remove
+                </button>
+              </li>
+            ))}
+          </ul>
+          <div className="flex gap-2">
+            <input
+              className={authInputClassName}
+              placeholder="New stage name"
+              value={newStage}
+              onChange={(event) => setNewStage(event.target.value)}
+            />
+            <button
+              type="button"
+              onClick={() => {
+                if (newStage.trim()) {
+                  setStageList([...stageList, newStage.trim()]);
+                  setNewStage("");
+                }
+              }}
+              className="rounded-md border border-border px-3 text-xs uppercase tracking-widest"
+            >
+              Add
+            </button>
+          </div>
+        </section>
+
+        <section className="space-y-3">
+          <h2 className="text-sm font-semibold text-foreground">Notifications</h2>
+          <label className="flex items-center gap-3 text-sm text-muted-foreground">
+            <input
+              type="checkbox"
+              checked={staleNotificationsEnabled}
+              onChange={(event) => setStaleNotificationsEnabled(event.target.checked)}
+            />
+            Stale-application reminders (14 days)
+          </label>
+          <label className="flex items-center gap-3 text-sm text-muted-foreground">
+            <input
+              type="checkbox"
+              checked={preDeletionWarningsEnabled}
+              onChange={(event) => setPreDeletionWarningsEnabled(event.target.checked)}
+            />
+            Pre-deletion warnings for archived jobs
+          </label>
+          <button
+            type="button"
+            disabled={submitting}
+            onClick={() => void savePreferences()}
+            className="w-full rounded-md bg-primary px-4 py-2.5 text-xs font-semibold tracking-widest text-primary-foreground uppercase disabled:opacity-50"
+          >
+            Save preferences
+          </button>
+        </section>
+
+        <form onSubmit={handlePasswordChange} className="space-y-4 border-t border-border pt-6">
           <h2 className="text-sm font-semibold text-foreground">Change password</h2>
           <AuthField label="Current password">
             <input
@@ -104,8 +212,7 @@ export default function SettingsPage() {
         <div className="space-y-4 border-t border-border pt-6">
           <h2 className="text-sm font-semibold text-red-300">Delete account</h2>
           <p className="text-sm text-muted-foreground">
-            This permanently deletes your jobs, profile data, and account. This cannot
-            be undone.
+            This permanently deletes your jobs, profile data, and account.
           </p>
           <AuthField label='Type "DELETE" to confirm'>
             <input

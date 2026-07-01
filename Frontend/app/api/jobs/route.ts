@@ -1,19 +1,27 @@
-import { NextResponse } from "next/server";
-import type { CreateJobInput } from "@jp/shared-types";
 import {
   getDevJobRepository,
   LOCAL_DEV_USER_ID,
 } from "@jp/backend";
+import type { CreateJobInput, ListJobsQuery } from "@jp/shared-types";
+import { NextResponse } from "next/server";
 
 function getUserId(request: Request): string {
   return request.headers.get("x-user-id") ?? LOCAL_DEV_USER_ID;
 }
 
+function listQuery(request: Request): ListJobsQuery {
+  const { searchParams } = new URL(request.url);
+  return {
+    q: searchParams.get("q") ?? undefined,
+    stage: searchParams.get("stage") ?? undefined,
+    status: (searchParams.get("status") as ListJobsQuery["status"]) ?? "active",
+    sortOrder: searchParams.get("sortOrder") === "asc" ? "asc" : "desc",
+  };
+}
+
 export async function GET(request: Request) {
   try {
-    const jobs = await getDevJobRepository().listActive({
-      userId: getUserId(request),
-    });
+    const jobs = await getDevJobRepository().list(getUserId(request), listQuery(request));
     return NextResponse.json({ jobs });
   } catch (error) {
     const message =
