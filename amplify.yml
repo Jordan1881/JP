@@ -6,9 +6,11 @@ applications:
       phases:
         preBuild:
           commands:
+            - nvm use 20
             - corepack enable
             - corepack prepare pnpm@10.4.1 --activate
             - pnpm install --frozen-lockfile
+            - pnpm rebuild esbuild sharp
             - pnpm --filter @jp/shared-types build
             - pnpm --filter @jp/backend build
         build:
@@ -20,7 +22,5 @@ applications:
           - "**/*"
       cache:
         paths:
+          - Frontend/.next/cache/**/*
           - node_modules/**/*
-          - Frontend/node_modules/**/*
-          - Backend/node_modules/**/*
-          - Backend/src/shared-types/node_modules/**/*
