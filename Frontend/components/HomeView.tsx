@@ -76,7 +76,9 @@ export function HomeView() {
     setJobsError(null);
     try {
       const next = await fetchJobs({ status: "active", sortOrder: "desc" });
-      setJobs(next);
+      setJobs((current) =>
+        next.length === 0 && current.length > 0 ? current : next,
+      );
     } catch (err) {
       setJobsError(err instanceof Error ? err.message : "Failed to load jobs");
     } finally {
@@ -91,7 +93,6 @@ export function HomeView() {
         { status: "active", sortOrder: "desc" },
       ),
     );
-    void loadJobs();
   }
 
   useEffect(() => {

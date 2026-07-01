@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import type { CreateJobInput } from "@jp/shared-types";
 import { gsap } from "@/lib/gsap";
@@ -25,7 +24,6 @@ const inputClassName = cn(
 );
 
 export function AddJobForm({ onJobAdded }: { onJobAdded?: (job: Job) => void }) {
-  const router = useRouter();
   const buttonRef = useRef<HTMLButtonElement>(null);
   const [form, setForm] = useState(emptyForm);
   const [error, setError] = useState<string | null>(null);
@@ -77,7 +75,6 @@ export function AddJobForm({ onJobAdded }: { onJobAdded?: (job: Job) => void }) 
 
       setForm({ ...emptyForm, submissionDate: form.submissionDate });
       onJobAdded?.(job);
-      router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to add job");
     } finally {
