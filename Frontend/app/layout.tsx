@@ -14,6 +14,10 @@ const geistMono = localFont({
 export const metadata: Metadata = {
   title: "JP — Job Player",
   description: "Track your job applications in one place",
+  icons: {
+    icon: "/logo-dark.svg",
+    shortcut: "/logo-dark.svg",
+  },
 };
 
 export default function RootLayout({

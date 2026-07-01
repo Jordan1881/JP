@@ -8,6 +8,7 @@ import { ApplicationsTable } from "@/components/ApplicationsTable";
 import { HeroVisual } from "@/components/HeroVisual";
 import { NotificationBell } from "@/components/NotificationBell";
 import { NavUserMenu } from "@/components/NavUserMenu";
+import { AppLogo } from "@/components/AppLogo";
 import { useAuth } from "@/components/AuthProvider";
 import { authSignOut, isAuthConfigured } from "@/lib/auth";
 import Link from "next/link";
@@ -135,14 +136,7 @@ export function HomeView({ jobs }: HomeViewProps) {
         className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-xl"
       >
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
-          <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-md bg-foreground">
-              <span className="text-xs font-bold text-background">JP</span>
-            </div>
-            <span className="text-sm font-semibold tracking-tight text-foreground">
-              Job Player
-            </span>
-          </div>
+          <AppLogo showWordmark height={36} />
 
           <div className="hidden items-center gap-8 md:flex">
             {[
@@ -291,9 +285,7 @@ export function HomeView({ jobs }: HomeViewProps) {
 
       <footer className="border-t border-border py-10">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-6 text-xs text-muted-foreground md:flex-row">
-          <span className="font-semibold tracking-tight text-foreground">
-            JP Job Player
-          </span>
+          <AppLogo href={null} height={28} />
           <span className="font-normal">
             Geist Mono · Grayscale · Built for your pipeline
           </span>
