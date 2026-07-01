@@ -1,5 +1,5 @@
-import Link from "next/link";
 import type { ReactNode } from "react";
+import { AppLogo } from "@/components/AppLogo";
 import { ThemeIconButton } from "@/components/ThemeToggle";
 
 interface AuthCardProps {
@@ -17,10 +17,8 @@ export function AuthCard({ title, subtitle, children, footer }: AuthCardProps) {
       </div>
       <div className="w-full max-w-md rounded-xl border border-border bg-card p-8 shadow-xl">
         <div className="mb-8">
-          <Link href="/" className="text-xs font-semibold tracking-widest text-muted-foreground uppercase">
-            JP Job Player
-          </Link>
-          <h1 className="mt-4 text-2xl font-semibold tracking-tight text-foreground">
+          <AppLogo height={36} />
+          <h1 className="mt-6 text-2xl font-semibold tracking-tight text-foreground">
             {title}
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">{subtitle}</p>
