@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Job } from "@jp/shared-types";
+import { searchAndFilterJobs } from "@jp/shared-types";
 import { gsap, registerGsapPlugins } from "@/lib/gsap";
 import { AddJobForm } from "@/components/AddJobForm";
 import { ApplicationsTable } from "@/components/ApplicationsTable";
@@ -82,6 +83,16 @@ export function HomeView() {
       setJobsLoading(false);
     }
   }, []);
+
+  function handleJobAdded(job: Job) {
+    setJobs((current) =>
+      searchAndFilterJobs(
+        [job, ...current.filter((entry) => entry.id !== job.id)],
+        { status: "active", sortOrder: "desc" },
+      ),
+    );
+    void loadJobs();
+  }
 
   useEffect(() => {
     void loadJobs();
@@ -296,7 +307,7 @@ export function HomeView() {
           <p className="text-sm text-destructive">{jobsError}</p>
         ) : null}
         <div data-scroll-reveal id="add-job">
-          <AddJobForm onJobAdded={() => void loadJobs()} />
+          <AddJobForm onJobAdded={handleJobAdded} />
         </div>
         <div data-scroll-reveal id="applications">
           {jobsLoading ? (

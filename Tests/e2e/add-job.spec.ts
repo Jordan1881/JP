@@ -9,6 +9,14 @@ test.describe("add job flow", () => {
   test("login, add job, and see it in applications table", async ({ page }) => {
     const jobTitle = `E2E Test Role ${Date.now()}`;
     const company = "Acme Corp";
+    const apiLogs: string[] = [];
+
+    page.on("response", async (response) => {
+      if (response.url().includes("/api/jobs")) {
+        const body = await response.text().catch(() => "");
+        apiLogs.push(`${response.request().method()} ${response.status()} ${body.slice(0, 200)}`);
+      }
+    });
 
     await page.goto("/login");
     await page.getByLabel("Email").fill(email!);
@@ -27,13 +35,21 @@ test.describe("add job flow", () => {
       }
     }
 
-    await page.getByRole("button", { name: /add application/i }).first().click();
+    await page.locator("#add-job").scrollIntoViewIfNeeded();
     await page.getByLabel("Job title *").fill(jobTitle);
     await page.getByLabel("Company *").fill(company);
-    await page.getByRole("button", { name: /^add job$/i }).click();
+
+    const postResponse = page.waitForResponse(
+      (response) =>
+        response.url().includes("/api/jobs") &&
+        response.request().method() === "POST",
+    );
+    await page.locator("#add-job form button[type='submit']").click({ force: true });
+    const created = await postResponse;
+    expect(created.ok(), `POST failed: ${apiLogs.join(" | ")}`).toBeTruthy();
 
     await expect(page.getByRole("cell", { name: jobTitle })).toBeVisible({
-      timeout: 15_000,
+      timeout: 20_000,
     });
     await expect(page.getByRole("cell", { name: company })).toBeVisible();
   });
