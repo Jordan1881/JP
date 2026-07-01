@@ -17,7 +17,7 @@ applications:
           commands:
             - pnpm --filter @jp/frontend build
       artifacts:
-        baseDirectory: .next
+        baseDirectory: Frontend/.next
         files:
           - "**/*"
       cache:
