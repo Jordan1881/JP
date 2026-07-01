@@ -14,14 +14,18 @@ import {
 import { createAccount } from "@/lib/account-api";
 import {
   authConfirmSignUp,
-  authSignOut,
+  authFetchUserAttributes,
+  authGetCurrentUser,
   authSignIn,
   authSignUp,
   isAuthConfigured,
 } from "@/lib/auth";
 
+type SignupMode = "loading" | "new" | "complete";
+
 export default function SignupPage() {
   const router = useRouter();
+  const [mode, setMode] = useState<SignupMode>("loading");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -32,9 +36,25 @@ export default function SignupPage() {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    if (isAuthConfigured()) {
-      void authSignOut();
+    if (!isAuthConfigured()) {
+      setMode("new");
+      return;
     }
+
+    async function loadSession() {
+      const user = await authGetCurrentUser();
+      if (!user) {
+        setMode("new");
+        return;
+      }
+
+      const attributes = await authFetchUserAttributes();
+      setEmail(attributes.email ?? "");
+      setName(attributes.name ?? "");
+      setMode("complete");
+    }
+
+    void loadSession();
   }, []);
 
   if (!isAuthConfigured()) {
@@ -43,6 +63,14 @@ export default function SignupPage() {
         <p className="text-sm text-muted-foreground">
           Add NEXT_PUBLIC_COGNITO_* values to .env.local for local development.
         </p>
+      </AuthCard>
+    );
+  }
+
+  if (mode === "loading") {
+    return (
+      <AuthCard title="Loading…" subtitle="Checking your session.">
+        <p className="text-sm text-muted-foreground">One moment.</p>
       </AuthCard>
     );
   }
@@ -58,6 +86,16 @@ export default function SignupPage() {
 
     setSubmitting(true);
     try {
+      if (mode === "complete") {
+        await createAccount({
+          name,
+          email,
+          termsVersion: CURRENT_TERMS_VERSION,
+        });
+        router.replace("/");
+        return;
+      }
+
       if (!needsConfirmation) {
         const result = await authSignUp({ name, email, password });
         if (result.nextStep.signUpStep === "CONFIRM_SIGN_UP") {
@@ -82,21 +120,35 @@ export default function SignupPage() {
     }
   }
 
+  const isComplete = mode === "complete";
+  const title = needsConfirmation
+    ? "Confirm your email"
+    : isComplete
+      ? "Finish your account"
+      : "Create your account";
+  const subtitle = needsConfirmation
+    ? "Enter the verification code sent to your email."
+    : isComplete
+      ? "You're signed in. Accept the terms to start using JP."
+      : "Track applications with a personal JP account.";
+
   return (
     <AuthCard
-      title={needsConfirmation ? "Confirm your email" : "Create your account"}
-      subtitle={
-        needsConfirmation
-          ? "Enter the verification code sent to your email."
-          : "Track applications with a personal JP account."
-      }
+      title={title}
+      subtitle={subtitle}
       footer={
-        <>
-          Already have an account?{" "}
-          <Link href="/login" className="text-foreground underline">
-            Sign in
+        isComplete ? (
+          <Link href="/" className="text-foreground underline">
+            Back to home
           </Link>
-        </>
+        ) : (
+          <>
+            Already have an account?{" "}
+            <Link href="/login" className="text-foreground underline">
+              Sign in
+            </Link>
+          </>
+        )
       }
     >
       <form onSubmit={handleSubmit} className="space-y-5">
@@ -118,19 +170,22 @@ export default function SignupPage() {
                 className={authInputClassName}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                readOnly={isComplete}
                 required
               />
             </AuthField>
-            <AuthField label="Password">
-              <input
-                type="password"
-                className={authInputClassName}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                minLength={8}
-                required
-              />
-            </AuthField>
+            {!isComplete ? (
+              <AuthField label="Password">
+                <input
+                  type="password"
+                  className={authInputClassName}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  minLength={8}
+                  required
+                />
+              </AuthField>
+            ) : null}
             <label className="flex items-start gap-3 text-sm text-muted-foreground">
               <input
                 type="checkbox"
@@ -159,7 +214,11 @@ export default function SignupPage() {
         )}
 
         <AuthButton disabled={submitting || (!needsConfirmation && !termsAccepted)}>
-          {needsConfirmation ? "Verify and continue" : "Create account"}
+          {needsConfirmation
+            ? "Verify and continue"
+            : isComplete
+              ? "Finish setup"
+              : "Create account"}
         </AuthButton>
       </form>
     </AuthCard>

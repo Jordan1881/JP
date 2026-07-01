@@ -1,0 +1,18 @@
+import { defineConfig, devices } from "@playwright/test";
+
+const baseURL =
+  process.env.E2E_BASE_URL ?? "https://main.dbkqz2plarhlv.amplifyapp.com";
+
+export default defineConfig({
+  testDir: "./e2e",
+  timeout: 60_000,
+  expect: { timeout: 15_000 },
+  fullyParallel: false,
+  retries: 0,
+  reporter: "list",
+  use: {
+    baseURL,
+    trace: "on-first-retry",
+    ...devices["Desktop Chrome"],
+  },
+});
