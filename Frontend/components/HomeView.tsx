@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { Job } from "@jp/shared-types";
 import { gsap, registerGsapPlugins } from "@/lib/gsap";
 import { AddJobForm } from "@/components/AddJobForm";
@@ -11,12 +11,9 @@ import { NavUserMenu } from "@/components/NavUserMenu";
 import { AppLogo } from "@/components/AppLogo";
 import { useAuth } from "@/components/AuthProvider";
 import { authSignOut, isAuthConfigured } from "@/lib/auth";
+import { fetchJobs } from "@/lib/jobs-api";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-
-interface HomeViewProps {
-  jobs: Job[];
-}
 
 const FEATURES = [
   {
@@ -65,10 +62,30 @@ function scrollToSection(id: string) {
   document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
 }
 
-export function HomeView({ jobs }: HomeViewProps) {
+export function HomeView() {
   const rootRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const { account } = useAuth();
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [jobsLoading, setJobsLoading] = useState(true);
+  const [jobsError, setJobsError] = useState<string | null>(null);
+
+  const loadJobs = useCallback(async () => {
+    setJobsLoading(true);
+    setJobsError(null);
+    try {
+      const next = await fetchJobs({ status: "active", sortOrder: "desc" });
+      setJobs(next);
+    } catch (err) {
+      setJobsError(err instanceof Error ? err.message : "Failed to load jobs");
+    } finally {
+      setJobsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadJobs();
+  }, [loadJobs]);
 
   async function handleSignOut() {
     await authSignOut();
@@ -275,11 +292,18 @@ export function HomeView({ jobs }: HomeViewProps) {
       </section>
 
       <main className="relative mx-auto max-w-6xl space-y-8 px-6 py-16 md:py-20">
+        {jobsError ? (
+          <p className="text-sm text-destructive">{jobsError}</p>
+        ) : null}
         <div data-scroll-reveal id="add-job">
-          <AddJobForm />
+          <AddJobForm onJobAdded={() => void loadJobs()} />
         </div>
         <div data-scroll-reveal id="applications">
-          <ApplicationsTable jobs={jobs} />
+          {jobsLoading ? (
+            <p className="text-sm text-muted-foreground">Loading applications…</p>
+          ) : (
+            <ApplicationsTable jobs={jobs} />
+          )}
         </div>
       </main>
 
