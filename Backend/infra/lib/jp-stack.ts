@@ -69,6 +69,10 @@ export class JpStack extends cdk.Stack {
     const integration = new apigateway.LambdaIntegration(apiHandler);
     api.root.addResource("health").addMethod("GET", integration);
 
+    const jobs = api.root.addResource("jobs");
+    jobs.addMethod("GET", integration);
+    jobs.addMethod("POST", integration);
+
     new cdk.CfnOutput(this, "ApiUrl", {
       value: api.url,
       description: "API Gateway base URL",

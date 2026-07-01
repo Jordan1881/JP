@@ -97,6 +97,9 @@ importers:
 
   Frontend:
     dependencies:
+      '@jp/backend':
+        specifier: workspace:*
+        version: link:../Backend
       '@jp/shared-types':
         specifier: workspace:*
         version: link:../Backend/src/shared-types

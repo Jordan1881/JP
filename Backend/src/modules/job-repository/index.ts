@@ -1,5 +1,9 @@
-/**
- * Job Repository — CRUD for job records.
- * Module implementation deferred to issue #9.
- */
-export const JOB_REPOSITORY_MODULE = "job-repository" as const;
+export { JobRepository } from "./job-repository.js";
+export { InMemoryJobStore } from "./in-memory-store.js";
+export { createJobRepository, getDevJobRepository } from "./factory.js";
+export type {
+  JobStore,
+  ListActiveJobsParams,
+  CreateJobInput,
+  Job,
+} from "./types.js";
