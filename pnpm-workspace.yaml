@@ -1,0 +1,6 @@
+packages:
+  - Frontend
+  - Backend
+  - Backend/src/shared-types
+  - Backend/infra
+  - Tests
