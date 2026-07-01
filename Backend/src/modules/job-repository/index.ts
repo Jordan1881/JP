@@ -1,6 +1,6 @@
 export { JobRepository } from "./job-repository.js";
 export { InMemoryJobStore } from "./in-memory-store.js";
-export { createJobRepository, getDevJobRepository } from "./factory.js";
+export { createJobRepository, getDevJobRepository, getDevJobStore } from "./factory.js";
 export type {
   JobStore,
   ListActiveJobsParams,

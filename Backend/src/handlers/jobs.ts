@@ -1,6 +1,6 @@
 import type { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
 import type { CreateJobInput } from "@jp/shared-types";
-import { LOCAL_DEV_USER_ID } from "../index.js";
+import { getUserId } from "./auth.js";
 import { getDevJobRepository } from "../modules/job-repository/factory.js";
 
 const JSON_HEADERS = { "Content-Type": "application/json" };
@@ -11,23 +11,6 @@ function response(statusCode: number, body: unknown): APIGatewayProxyResult {
     headers: JSON_HEADERS,
     body: JSON.stringify(body),
   };
-}
-
-function getUserId(event: APIGatewayProxyEvent): string {
-  const authorizerUserId =
-    event.requestContext.authorizer?.claims?.sub ??
-    event.requestContext.authorizer?.userId;
-
-  if (typeof authorizerUserId === "string" && authorizerUserId.length > 0) {
-    return authorizerUserId;
-  }
-
-  const headerUserId = event.headers["x-user-id"] ?? event.headers["X-User-Id"];
-  if (headerUserId) {
-    return headerUserId;
-  }
-
-  return LOCAL_DEV_USER_ID;
 }
 
 export async function listJobsHandler(

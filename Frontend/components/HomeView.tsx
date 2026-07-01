@@ -6,6 +6,10 @@ import { gsap, registerGsapPlugins } from "@/lib/gsap";
 import { AddJobForm } from "@/components/AddJobForm";
 import { ApplicationsTable } from "@/components/ApplicationsTable";
 import { HeroVisual } from "@/components/HeroVisual";
+import { useAuth } from "@/components/AuthProvider";
+import { authSignOut, isAuthConfigured } from "@/lib/auth";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 interface HomeViewProps {
   jobs: Job[];
@@ -60,6 +64,13 @@ function scrollToSection(id: string) {
 
 export function HomeView({ jobs }: HomeViewProps) {
   const rootRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
+  const { account } = useAuth();
+
+  async function handleSignOut() {
+    await authSignOut();
+    router.push("/login");
+  }
 
   useEffect(() => {
     registerGsapPlugins();
@@ -147,13 +158,45 @@ export function HomeView({ jobs }: HomeViewProps) {
             ))}
           </div>
 
-          <button
-            type="button"
-            onClick={() => scrollToSection("add-job")}
-            className="rounded-md bg-primary px-4 py-2 text-xs font-semibold tracking-widest text-primary-foreground uppercase transition-colors hover:bg-white"
-          >
-            Add application
-          </button>
+          <div className="flex items-center gap-3">
+            {isAuthConfigured() ? (
+              <>
+                <Link
+                  href="/account"
+                  className="hidden text-sm text-muted-foreground transition-colors hover:text-foreground md:inline"
+                >
+                  {account?.name ?? "Account"}
+                </Link>
+                <Link
+                  href="/settings"
+                  className="hidden text-sm text-muted-foreground transition-colors hover:text-foreground md:inline"
+                >
+                  Settings
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => void handleSignOut()}
+                  className="hidden text-sm text-muted-foreground transition-colors hover:text-foreground md:inline"
+                >
+                  Sign out
+                </button>
+              </>
+            ) : (
+              <Link
+                href="/login"
+                className="hidden text-sm text-muted-foreground transition-colors hover:text-foreground md:inline"
+              >
+                Sign in
+              </Link>
+            )}
+            <button
+              type="button"
+              onClick={() => scrollToSection("add-job")}
+              className="rounded-md bg-primary px-4 py-2 text-xs font-semibold tracking-widest text-primary-foreground uppercase transition-colors hover:bg-white"
+            >
+              Add application
+            </button>
+          </div>
         </div>
       </nav>
 
@@ -258,7 +301,7 @@ export function HomeView({ jobs }: HomeViewProps) {
             JP Job Player
           </span>
           <span className="font-normal">
-            Inter · Grayscale · Built for your pipeline
+            Geist Mono · Grayscale · Built for your pipeline
           </span>
         </div>
       </footer>

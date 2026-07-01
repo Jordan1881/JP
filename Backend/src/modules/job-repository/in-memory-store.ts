@@ -23,6 +23,14 @@ export class InMemoryJobStore implements JobStore {
       .map((job) => structuredClone(job));
   }
 
+  async deleteByUser(userId: string): Promise<void> {
+    for (const [id, job] of this.jobs) {
+      if (job.userId === userId) {
+        this.jobs.delete(id);
+      }
+    }
+  }
+
   clear(): void {
     this.jobs.clear();
   }

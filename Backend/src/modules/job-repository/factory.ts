@@ -1,7 +1,7 @@
 import { JobRepository } from "./job-repository.js";
 import { InMemoryJobStore } from "./in-memory-store.js";
 
-let devRepository: JobRepository | null = null;
+let devStore: InMemoryJobStore | null = null;
 
 export function createJobRepository(
   store = new InMemoryJobStore(),
@@ -9,7 +9,11 @@ export function createJobRepository(
   return new JobRepository(store);
 }
 
+export function getDevJobStore(): InMemoryJobStore {
+  devStore ??= new InMemoryJobStore();
+  return devStore;
+}
+
 export function getDevJobRepository(): JobRepository {
-  devRepository ??= createJobRepository();
-  return devRepository;
+  return createJobRepository(getDevJobStore());
 }

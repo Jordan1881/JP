@@ -68,15 +68,6 @@ export interface CareerProfile {
   interviewCompletedAt?: string;
 }
 
-export interface UserAccount {
-  userId: string;
-  name: string;
-  email: string;
-  photoUrl?: string;
-  termsAcceptedAt?: string;
-  termsVersion?: string;
-}
-
 export interface UserPreferences {
   userId: string;
   staleNotificationsEnabled: boolean;

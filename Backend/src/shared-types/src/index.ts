@@ -1,4 +1,13 @@
 export {
+  CURRENT_TERMS_VERSION,
+  needsTermsReacceptance,
+  type UserAccount,
+  type CreateAccountInput,
+  type UpdateAccountInput,
+  type AcceptTermsInput,
+  type DeleteAccountInput,
+} from "./user.js";
+export {
   TERMINAL_STAGES,
   type TerminalStage,
   type JobStatus,
@@ -9,7 +18,6 @@ export {
   type CreateJobInput,
   type UpdateJobInput,
   type CareerProfile,
-  type UserAccount,
   type UserPreferences,
   type DashboardStats,
   type ApiHealthResponse,
