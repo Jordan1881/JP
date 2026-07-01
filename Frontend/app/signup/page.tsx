@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { CURRENT_TERMS_VERSION } from "@jp/shared-types";
@@ -14,6 +14,7 @@ import {
 import { createAccount } from "@/lib/account-api";
 import {
   authConfirmSignUp,
+  authSignOut,
   authSignIn,
   authSignUp,
   isAuthConfigured,
@@ -29,6 +30,12 @@ export default function SignupPage() {
   const [needsConfirmation, setNeedsConfirmation] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (isAuthConfigured()) {
+      void authSignOut();
+    }
+  }, []);
 
   if (!isAuthConfigured()) {
     return (
