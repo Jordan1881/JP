@@ -19,7 +19,7 @@ export function AppLogo({
   className,
 }: AppLogoProps) {
   const { theme } = useTheme();
-  const src = theme === "dark" ? "/logo-dark.svg" : "/logo-light.svg";
+  const src = theme === "dark" ? "/logo-light.svg" : "/logo-dark.svg";
   const width = Math.round((height / 46) * 54);
 
   const content = (
