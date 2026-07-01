@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import type { CreateJobInput } from "@jp/shared-types";
 import { gsap } from "@/lib/gsap";
-import { authHeaders } from "@/lib/auth";
+import { createJob } from "@/lib/jobs-api";
 import { cn } from "@/lib/utils";
 
 const emptyForm: CreateJobInput = {
@@ -23,7 +23,7 @@ const inputClassName = cn(
   "transition-all duration-200 focus:border-white/25 focus:ring-1 focus:ring-ring focus:outline-none",
 );
 
-export function AddJobForm() {
+export function AddJobForm({ onJobAdded }: { onJobAdded?: () => void }) {
   const router = useRouter();
   const buttonRef = useRef<HTMLButtonElement>(null);
   const [form, setForm] = useState(emptyForm);
@@ -57,36 +57,31 @@ export function AddJobForm() {
       notes: form.notes || undefined,
     };
 
-    const response = await fetch("/api/jobs", {
-      method: "POST",
-      headers: await authHeaders(),
-      body: JSON.stringify(payload),
-    });
+    try {
+      await createJob(payload);
 
-    if (!response.ok) {
-      const body = (await response.json()) as { error?: string };
-      setError(body.error ?? "Failed to add job");
+      if (buttonRef.current) {
+        gsap.fromTo(
+          buttonRef.current,
+          { scale: 1 },
+          {
+            scale: 1.04,
+            duration: 0.15,
+            yoyo: true,
+            repeat: 1,
+            ease: "power2.inOut",
+          },
+        );
+      }
+
+      setForm({ ...emptyForm, submissionDate: form.submissionDate });
+      onJobAdded?.();
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to add job");
+    } finally {
       setSubmitting(false);
-      return;
     }
-
-    if (buttonRef.current) {
-      gsap.fromTo(
-        buttonRef.current,
-        { scale: 1 },
-        {
-          scale: 1.04,
-          duration: 0.15,
-          yoyo: true,
-          repeat: 1,
-          ease: "power2.inOut",
-        },
-      );
-    }
-
-    setForm({ ...emptyForm, submissionDate: form.submissionDate });
-    setSubmitting(false);
-    router.refresh();
   }
 
   return (
