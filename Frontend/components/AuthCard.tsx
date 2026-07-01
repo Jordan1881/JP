@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { ThemeIconButton } from "@/components/ThemeToggle";
 
 interface AuthCardProps {
   title: string;
@@ -10,7 +11,10 @@ interface AuthCardProps {
 
 export function AuthCard({ title, subtitle, children, footer }: AuthCardProps) {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-6 py-16">
+    <div className="relative flex min-h-screen items-center justify-center bg-background px-6 py-16">
+      <div className="absolute top-6 right-6">
+        <ThemeIconButton />
+      </div>
       <div className="w-full max-w-md rounded-xl border border-border bg-card p-8 shadow-xl">
         <div className="mb-8">
           <Link href="/" className="text-xs font-semibold tracking-widest text-muted-foreground uppercase">
@@ -44,7 +48,7 @@ export function AuthField({
 }
 
 export const authInputClassName =
-  "w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground outline-none ring-0 transition-colors focus:border-white/30";
+  "w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground outline-none ring-0 transition-colors focus:border-foreground/30";
 
 export function AuthError({ message }: { message: string | null }) {
   if (!message) return null;
@@ -66,7 +70,7 @@ export function AuthButton({
     <button
       type="submit"
       disabled={disabled}
-      className="w-full rounded-md bg-primary px-4 py-2.5 text-xs font-semibold tracking-widest text-primary-foreground uppercase transition-colors hover:bg-white disabled:cursor-not-allowed disabled:opacity-50"
+      className="w-full rounded-md bg-primary px-4 py-2.5 text-xs font-semibold tracking-widest text-primary-foreground uppercase transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
     >
       {children}
     </button>

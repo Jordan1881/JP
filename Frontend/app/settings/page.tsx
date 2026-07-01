@@ -10,6 +10,7 @@ import {
   AuthField,
   authInputClassName,
 } from "@/components/AuthCard";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { deleteAccount } from "@/lib/account-api";
 import { fetchPreferences, updatePreferences } from "@/lib/preferences-api";
 import {
@@ -107,6 +108,14 @@ export default function SettingsPage() {
       <div className="space-y-8">
         <AuthError message={error} />
         {success ? <p className="text-sm text-emerald-300">{success}</p> : null}
+
+        <section className="space-y-3">
+          <h2 className="text-sm font-semibold text-foreground">Appearance</h2>
+          <p className="text-sm text-muted-foreground">
+            Switch between light and dark mode. Your choice is saved in this browser.
+          </p>
+          <ThemeToggle variant="settings" />
+        </section>
 
         <section className="space-y-4">
           <h2 className="text-sm font-semibold text-foreground">Interview stages</h2>
