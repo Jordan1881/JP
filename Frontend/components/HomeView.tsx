@@ -6,6 +6,7 @@ import { gsap, registerGsapPlugins } from "@/lib/gsap";
 import { AddJobForm } from "@/components/AddJobForm";
 import { ApplicationsTable } from "@/components/ApplicationsTable";
 import { HeroVisual } from "@/components/HeroVisual";
+import { NavUserMenu } from "@/components/NavUserMenu";
 import { useAuth } from "@/components/AuthProvider";
 import { authSignOut, isAuthConfigured } from "@/lib/auth";
 import Link from "next/link";
@@ -159,36 +160,6 @@ export function HomeView({ jobs }: HomeViewProps) {
           </div>
 
           <div className="flex items-center gap-3">
-            {isAuthConfigured() ? (
-              <>
-                <Link
-                  href="/account"
-                  className="hidden text-sm text-muted-foreground transition-colors hover:text-foreground md:inline"
-                >
-                  {account?.name ?? "Account"}
-                </Link>
-                <Link
-                  href="/settings"
-                  className="hidden text-sm text-muted-foreground transition-colors hover:text-foreground md:inline"
-                >
-                  Settings
-                </Link>
-                <button
-                  type="button"
-                  onClick={() => void handleSignOut()}
-                  className="hidden text-sm text-muted-foreground transition-colors hover:text-foreground md:inline"
-                >
-                  Sign out
-                </button>
-              </>
-            ) : (
-              <Link
-                href="/login"
-                className="hidden text-sm text-muted-foreground transition-colors hover:text-foreground md:inline"
-              >
-                Sign in
-              </Link>
-            )}
             <button
               type="button"
               onClick={() => scrollToSection("add-job")}
@@ -196,6 +167,19 @@ export function HomeView({ jobs }: HomeViewProps) {
             >
               Add application
             </button>
+            {isAuthConfigured() ? (
+              <NavUserMenu
+                userName={account?.name}
+                onSignOut={() => void handleSignOut()}
+              />
+            ) : (
+              <Link
+                href="/login"
+                className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+              >
+                Sign in
+              </Link>
+            )}
           </div>
         </div>
       </nav>
