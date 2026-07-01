@@ -13,6 +13,7 @@ import { usePathname, useRouter } from "next/navigation";
 import type { UserAccount } from "@jp/shared-types";
 import { needsTermsReacceptance } from "@jp/shared-types";
 import { fetchAccount } from "@/lib/account-api";
+import { getCachedAccount } from "@/lib/account-cache";
 import { authGetCurrentUser, isAuthConfigured } from "@/lib/auth";
 import { configureAmplify } from "@/lib/amplify";
 
@@ -64,7 +65,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       setUserId(user.userId);
-      const nextAccount = await fetchAccount();
+      const nextAccount =
+        (await fetchAccount()) ?? getCachedAccount(user.userId);
       setAccount(nextAccount);
       setLoading(false);
 
