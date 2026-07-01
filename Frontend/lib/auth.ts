@@ -16,11 +16,21 @@ configureAmplify();
 
 export { isAuthConfigured };
 
+/** Cognito rejects signUp/signIn when a session already exists. */
+async function ensureSignedOut() {
+  try {
+    await signOut();
+  } catch {
+    // No active session — safe to continue.
+  }
+}
+
 export async function authSignUp(input: {
   email: string;
   password: string;
   name: string;
 }): Promise<SignUpOutput> {
+  await ensureSignedOut();
   return signUp({
     username: input.email,
     password: input.password,
@@ -34,10 +44,12 @@ export async function authSignUp(input: {
 }
 
 export async function authConfirmSignUp(email: string, code: string) {
+  await ensureSignedOut();
   return confirmSignUp({ username: email, confirmationCode: code });
 }
 
 export async function authSignIn(email: string, password: string) {
+  await ensureSignedOut();
   return signIn({ username: email, password });
 }
 
