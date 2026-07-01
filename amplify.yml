@@ -1,0 +1,26 @@
+version: 1
+applications:
+  - appRoot: Frontend
+    frontend:
+      buildPath: /
+      phases:
+        preBuild:
+          commands:
+            - corepack enable
+            - corepack prepare pnpm@10.4.1 --activate
+            - pnpm install --frozen-lockfile
+            - pnpm --filter @jp/shared-types build
+            - pnpm --filter @jp/backend build
+        build:
+          commands:
+            - pnpm --filter @jp/frontend build
+      artifacts:
+        baseDirectory: .next
+        files:
+          - "**/*"
+      cache:
+        paths:
+          - node_modules/**/*
+          - Frontend/node_modules/**/*
+          - Backend/node_modules/**/*
+          - Backend/src/shared-types/node_modules/**/*
