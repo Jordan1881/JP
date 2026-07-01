@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 interface NavUserMenuProps {
   userName?: string | null;
@@ -94,6 +95,7 @@ export function NavUserMenu({ userName, onSignOut }: NavUserMenuProps) {
             >
               Settings
             </Link>
+            <ThemeToggle />
             <button
               type="button"
               role="menuitem"

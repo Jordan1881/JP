@@ -2,6 +2,32 @@
 
 :root {
   --font-size: 16px;
+  --background: #fafafa;
+  --foreground: #0a0a0a;
+  --card: #ffffff;
+  --card-foreground: #0a0a0a;
+  --primary: #0a0a0a;
+  --primary-foreground: #fafafa;
+  --secondary: #f0f0f0;
+  --secondary-foreground: #525252;
+  --muted: #f5f5f5;
+  --muted-foreground: #737373;
+  --accent: #0a0a0a;
+  --accent-foreground: #fafafa;
+  --destructive: #737373;
+  --destructive-foreground: #ffffff;
+  --border: rgba(0, 0, 0, 0.08);
+  --input: transparent;
+  --input-background: #f0f0f0;
+  --ring: rgba(0, 0, 0, 0.2);
+  --grid-dot-color: rgba(0, 0, 0, 0.06);
+  --scrollbar-thumb: rgba(0, 0, 0, 0.15);
+  --radius: 0.5rem;
+  --font-weight-medium: 500;
+  --font-weight-normal: 400;
+}
+
+:root.dark {
   --background: #0a0a0a;
   --foreground: #f0f0f0;
   --card: #141414;
@@ -20,9 +46,8 @@
   --input: transparent;
   --input-background: #1c1c1c;
   --ring: rgba(255, 255, 255, 0.25);
-  --radius: 0.5rem;
-  --font-weight-medium: 500;
-  --font-weight-normal: 400;
+  --grid-dot-color: rgba(255, 255, 255, 0.06);
+  --scrollbar-thumb: rgba(255, 255, 255, 0.1);
 }
 
 @theme inline {
@@ -101,7 +126,7 @@
 
 .grid-dots {
   background-image: radial-gradient(
-    rgba(255, 255, 255, 0.06) 1px,
+    var(--grid-dot-color) 1px,
     transparent 1px
   );
   background-size: 28px 28px;
@@ -117,6 +142,6 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--scrollbar-thumb);
   border-radius: 3px;
 }
