@@ -1,6 +1,13 @@
 import type { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
 import { handler as healthHandler } from "../handlers/health.js";
 import {
+  acceptTermsHandler,
+  createAccountHandler,
+  deleteAccountHandler,
+  getAccountHandler,
+  updateAccountHandler,
+} from "../handlers/account.js";
+import {
   createJobHandler,
   listJobsHandler,
 } from "../handlers/jobs.js";
@@ -21,6 +28,16 @@ export async function handler(
       return listJobsHandler(event);
     case "POST /jobs":
       return createJobHandler(event);
+    case "GET /account":
+      return getAccountHandler(event);
+    case "POST /account":
+      return createAccountHandler(event);
+    case "PATCH /account":
+      return updateAccountHandler(event);
+    case "DELETE /account":
+      return deleteAccountHandler(event);
+    case "POST /account/accept-terms":
+      return acceptTermsHandler(event);
     default:
       return {
         statusCode: 404,

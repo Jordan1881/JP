@@ -1,0 +1,74 @@
+import Link from "next/link";
+import type { ReactNode } from "react";
+
+interface AuthCardProps {
+  title: string;
+  subtitle: string;
+  children: ReactNode;
+  footer?: ReactNode;
+}
+
+export function AuthCard({ title, subtitle, children, footer }: AuthCardProps) {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-background px-6 py-16">
+      <div className="w-full max-w-md rounded-xl border border-border bg-card p-8 shadow-xl">
+        <div className="mb-8">
+          <Link href="/" className="text-xs font-semibold tracking-widest text-muted-foreground uppercase">
+            JP Job Player
+          </Link>
+          <h1 className="mt-4 text-2xl font-semibold tracking-tight text-foreground">
+            {title}
+          </h1>
+          <p className="mt-2 text-sm text-muted-foreground">{subtitle}</p>
+        </div>
+        {children}
+        {footer ? <div className="mt-6 text-sm text-muted-foreground">{footer}</div> : null}
+      </div>
+    </div>
+  );
+}
+
+export function AuthField({
+  label,
+  children,
+}: {
+  label: string;
+  children: ReactNode;
+}) {
+  return (
+    <label className="block space-y-2 text-sm">
+      <span className="font-medium text-foreground">{label}</span>
+      {children}
+    </label>
+  );
+}
+
+export const authInputClassName =
+  "w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground outline-none ring-0 transition-colors focus:border-white/30";
+
+export function AuthError({ message }: { message: string | null }) {
+  if (!message) return null;
+  return (
+    <p className="rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-200">
+      {message}
+    </p>
+  );
+}
+
+export function AuthButton({
+  children,
+  disabled,
+}: {
+  children: React.ReactNode;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      type="submit"
+      disabled={disabled}
+      className="w-full rounded-md bg-primary px-4 py-2.5 text-xs font-semibold tracking-widest text-primary-foreground uppercase transition-colors hover:bg-white disabled:cursor-not-allowed disabled:opacity-50"
+    >
+      {children}
+    </button>
+  );
+}

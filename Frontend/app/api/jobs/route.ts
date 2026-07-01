@@ -5,10 +5,14 @@ import {
   LOCAL_DEV_USER_ID,
 } from "@jp/backend";
 
-export async function GET() {
+function getUserId(request: Request): string {
+  return request.headers.get("x-user-id") ?? LOCAL_DEV_USER_ID;
+}
+
+export async function GET(request: Request) {
   try {
     const jobs = await getDevJobRepository().listActive({
-      userId: LOCAL_DEV_USER_ID,
+      userId: getUserId(request),
     });
     return NextResponse.json({ jobs });
   } catch (error) {
@@ -22,7 +26,7 @@ export async function POST(request: Request) {
   try {
     const input = (await request.json()) as CreateJobInput;
     const job = await getDevJobRepository().create(
-      LOCAL_DEV_USER_ID,
+      getUserId(request),
       input,
     );
     return NextResponse.json({ job }, { status: 201 });

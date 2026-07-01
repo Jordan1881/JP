@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import type { CreateJobInput } from "@jp/shared-types";
 import { gsap } from "@/lib/gsap";
+import { authHeaders } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 
 const emptyForm: CreateJobInput = {
@@ -58,7 +59,7 @@ export function AddJobForm() {
 
     const response = await fetch("/api/jobs", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: await authHeaders(),
       body: JSON.stringify(payload),
     });
 
