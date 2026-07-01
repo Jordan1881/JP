@@ -17,12 +17,12 @@ test.describe("full app top-to-bottom", () => {
     await expect(page.getByRole("navigation").getByRole("img", { name: /JP/i })).toBeVisible();
     await expect(page.getByRole("heading", { name: /track every application/i })).toBeVisible();
 
-    // Theme toggle (skip if GSAP animating nav — use force click)
+    // Theme toggle (menu can animate — use force clicks)
     await page.getByRole("button", { name: /open account menu/i }).click({ force: true });
     const themeToggle = page.getByRole("menuitem", { name: /mode/i });
     await expect(themeToggle).toBeVisible();
     const themeLabel = await themeToggle.textContent();
-    await themeToggle.click();
+    await themeToggle.click({ force: true });
     await page.getByRole("button", { name: /open account menu/i }).click({ force: true });
     await expect(page.getByRole("menuitem", { name: /mode/i })).not.toHaveText(themeLabel ?? "");
 
