@@ -12,8 +12,6 @@ cdk.out/
 .env
 .env.*
 !.env.example
-
-# logs & OS
 *.log
 .DS_Store
 

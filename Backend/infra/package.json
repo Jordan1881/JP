@@ -1,0 +1,28 @@
+{
+  "name": "@jp/infra",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint bin lib --config ../../eslint.config.mjs --max-warnings 0",
+    "test": "echo \"Infra validated via cdk synth in CI (issue #3 deploy)\"",
+    "cdk": "cdk",
+    "synth": "cdk synth"
+  },
+  "dependencies": {
+    "@jp/backend": "workspace:*",
+    "aws-cdk-lib": "^2.232.1",
+    "constructs": "^10.4.3"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.1",
+    "@types/node": "^22.19.1",
+    "aws-cdk": "^2.1033.0",
+    "esbuild": "^0.27.0",
+    "eslint": "^9.39.1",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.46.4"
+  }
+}
