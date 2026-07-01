@@ -5,6 +5,7 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import type { CreateJobInput } from "@jp/shared-types";
 import { gsap } from "@/lib/gsap";
 import { createJob } from "@/lib/jobs-api";
+import type { Job } from "@jp/shared-types";
 import { cn } from "@/lib/utils";
 
 const emptyForm: CreateJobInput = {
@@ -23,7 +24,7 @@ const inputClassName = cn(
   "transition-all duration-200 focus:border-white/25 focus:ring-1 focus:ring-ring focus:outline-none",
 );
 
-export function AddJobForm({ onJobAdded }: { onJobAdded?: () => void }) {
+export function AddJobForm({ onJobAdded }: { onJobAdded?: (job: Job) => void }) {
   const router = useRouter();
   const buttonRef = useRef<HTMLButtonElement>(null);
   const [form, setForm] = useState(emptyForm);
@@ -58,7 +59,7 @@ export function AddJobForm({ onJobAdded }: { onJobAdded?: () => void }) {
     };
 
     try {
-      await createJob(payload);
+      const job = await createJob(payload);
 
       if (buttonRef.current) {
         gsap.fromTo(
@@ -75,7 +76,7 @@ export function AddJobForm({ onJobAdded }: { onJobAdded?: () => void }) {
       }
 
       setForm({ ...emptyForm, submissionDate: form.submissionDate });
-      onJobAdded?.();
+      onJobAdded?.(job);
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to add job");
