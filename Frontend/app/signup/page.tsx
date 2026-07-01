@@ -11,7 +11,8 @@ import {
   AuthField,
   authInputClassName,
 } from "@/components/AuthCard";
-import { createAccount } from "@/lib/account-api";
+import { useAuth } from "@/components/AuthProvider";
+import { createAccount, fetchAccount } from "@/lib/account-api";
 import {
   authConfirmSignUp,
   authFetchUserAttributes,
@@ -25,6 +26,7 @@ type SignupMode = "loading" | "new" | "complete";
 
 export default function SignupPage() {
   const router = useRouter();
+  const { refreshAccount } = useAuth();
   const [mode, setMode] = useState<SignupMode>("loading");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -48,6 +50,12 @@ export default function SignupPage() {
         return;
       }
 
+      const existingAccount = await fetchAccount();
+      if (existingAccount) {
+        router.replace("/");
+        return;
+      }
+
       const attributes = await authFetchUserAttributes();
       setEmail(attributes.email ?? "");
       setName(attributes.name ?? "");
@@ -55,7 +63,7 @@ export default function SignupPage() {
     }
 
     void loadSession();
-  }, []);
+  }, [router]);
 
   if (!isAuthConfigured()) {
     return (
@@ -92,6 +100,7 @@ export default function SignupPage() {
           email,
           termsVersion: CURRENT_TERMS_VERSION,
         });
+        await refreshAccount();
         router.replace("/");
         return;
       }
@@ -112,6 +121,7 @@ export default function SignupPage() {
         email,
         termsVersion: CURRENT_TERMS_VERSION,
       });
+      await refreshAccount();
       router.replace("/");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Signup failed");

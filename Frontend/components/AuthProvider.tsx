@@ -68,6 +68,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setAccount(nextAccount);
       setLoading(false);
 
+      if (pathname === "/signup" && nextAccount) {
+        router.replace("/");
+        return;
+      }
+
       if (!PUBLIC_PATHS.has(pathname)) {
         if (!nextAccount && pathname !== "/signup") {
           router.replace("/signup");
