@@ -5,6 +5,17 @@ export {
   getDevJobRepository,
   getDevJobStore,
 } from "./modules/job-repository/index.js";
+export {
+  getDisplayStages,
+  resolvePipelineStages,
+  applyStageChange,
+  SUBMITTED_RESUME_STAGE,
+  DEFAULT_PIPELINE_STAGES,
+} from "./modules/stage-pipeline-manager/index.js";
+export type {
+  TerminalStageEvent,
+  StageChangeResult,
+} from "./modules/stage-pipeline-manager/index.js";
 export type {
   JobStore,
   ListActiveJobsParams,

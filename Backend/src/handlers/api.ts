@@ -9,19 +9,25 @@ import {
 } from "../handlers/account.js";
 import {
   createJobHandler,
+  getJobHandler,
   listJobsHandler,
+  patchJobHandler,
 } from "../handlers/jobs.js";
-
-function routeKey(event: APIGatewayProxyEvent): string {
-  const method = event.httpMethod.toUpperCase();
-  const path = event.path.replace(/\/+$/, "") || "/";
-  return `${method} ${path}`;
-}
 
 export async function handler(
   event: APIGatewayProxyEvent,
 ): Promise<APIGatewayProxyResult> {
-  switch (routeKey(event)) {
+  const path = event.path.replace(/\/+$/, "") || "/";
+  const method = event.httpMethod.toUpperCase();
+
+  if (method === "GET" && /^\/jobs\/[^/]+$/.test(path)) {
+    return getJobHandler(event);
+  }
+  if (method === "PATCH" && /^\/jobs\/[^/]+$/.test(path)) {
+    return patchJobHandler(event);
+  }
+
+  switch (`${method} ${path}`) {
     case "GET /health":
       return healthHandler();
     case "GET /jobs":
