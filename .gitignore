@@ -17,6 +17,8 @@ cdk.out/
 
 # test / coverage
 coverage/
+Tests/test-results/
+Tests/playwright-report/
 
 # IDE
 .idea/

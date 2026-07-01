@@ -3,6 +3,7 @@
 import {
   confirmSignUp,
   deleteUser,
+  fetchUserAttributes,
   getCurrentUser,
   signIn,
   signOut,
@@ -62,6 +63,14 @@ export async function authGetCurrentUser() {
     return await getCurrentUser();
   } catch {
     return null;
+  }
+}
+
+export async function authFetchUserAttributes() {
+  try {
+    return await fetchUserAttributes();
+  } catch {
+    return {};
   }
 }
 

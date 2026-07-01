@@ -5,6 +5,7 @@
     "lint": "eslint Frontend Backend/src Backend/infra Tests --config eslint.config.mjs --max-warnings 0",
     "typecheck": "pnpm --filter @jp/shared-types build && pnpm --filter @jp/backend build && pnpm -r typecheck",
     "test": "pnpm --filter @jp/shared-types build && pnpm --filter @jp/tests test",
+    "test:e2e": "pnpm --filter @jp/tests test:e2e",
     "build": "pnpm --filter @jp/shared-types build && pnpm --filter @jp/backend build && pnpm -r build"
   },
   "devDependencies": {
