@@ -17,6 +17,7 @@ export {
   type Job,
   type CreateJobInput,
   type UpdateJobInput,
+  type PatchJobInput,
   type CareerProfile,
   type UserPreferences,
   type DashboardStats,

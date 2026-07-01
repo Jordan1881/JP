@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import Link from "next/link";
 import type { Job } from "@jp/shared-types";
 import { gsap, registerGsapPlugins } from "@/lib/gsap";
 
@@ -98,7 +99,12 @@ export function ApplicationsTable({ jobs }: ApplicationsTableProps) {
                     className="group transition-colors hover:bg-secondary/50"
                   >
                     <td className="px-3 py-4 font-medium text-foreground">
-                      {job.title}
+                      <Link
+                        href={`/jobs/${job.id}`}
+                        className="transition-colors hover:text-white"
+                      >
+                        {job.title}
+                      </Link>
                     </td>
                     <td className="px-3 py-4 font-normal text-foreground/85">
                       {job.company}

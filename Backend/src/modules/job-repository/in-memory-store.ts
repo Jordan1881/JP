@@ -9,6 +9,14 @@ export class InMemoryJobStore implements JobStore {
     return structuredClone(job);
   }
 
+  async update(job: Job): Promise<Job> {
+    if (!this.jobs.has(job.id)) {
+      throw new Error("Job not found");
+    }
+    this.jobs.set(job.id, structuredClone(job));
+    return structuredClone(job);
+  }
+
   async findById(id: string, userId: string): Promise<Job | null> {
     const job = this.jobs.get(id);
     if (!job || job.userId !== userId) {

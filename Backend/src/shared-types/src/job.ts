@@ -53,6 +53,11 @@ export type UpdateJobInput = Partial<
   Omit<Job, "id" | "userId" | "submissionDate">
 >;
 
+export type PatchJobInput = {
+  notes?: string;
+  stage?: string;
+};
+
 export interface CareerProfile {
   userId: string;
   techStack: string[];

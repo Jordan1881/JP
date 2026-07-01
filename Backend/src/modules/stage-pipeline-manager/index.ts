@@ -4,3 +4,10 @@ export {
   normalizeSubmissionDate,
   createInitialStageState,
 } from "./defaults.js";
+export {
+  applyStageChange,
+  getDisplayStages,
+  resolvePipelineStages,
+  type StageChangeResult,
+  type TerminalStageEvent,
+} from "./stage-pipeline-manager.js";
