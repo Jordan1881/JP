@@ -114,7 +114,7 @@ export function HeroVisual() {
           fill="rgba(255,255,255,0.85)"
           fontSize="22"
           fontWeight="600"
-          fontFamily="var(--font-inter), sans-serif"
+          fontFamily="var(--font-geist-mono), monospace"
         >
           JP
         </text>

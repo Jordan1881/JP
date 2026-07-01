@@ -301,7 +301,7 @@ export function HomeView({ jobs }: HomeViewProps) {
             JP Job Player
           </span>
           <span className="font-normal">
-            Inter · Grayscale · Built for your pipeline
+            Geist Mono · Grayscale · Built for your pipeline
           </span>
         </div>
       </footer>

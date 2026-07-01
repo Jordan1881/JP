@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import localFont from "next/font/local";
 import { AuthProvider } from "@/components/AuthProvider";
 import "./globals.css";
 
-const inter = Inter({
-  subsets: ["latin"],
-  variable: "--font-inter",
-  weight: ["300", "400", "500", "600", "700"],
+const geistMono = localFont({
+  src: "../fonts/GeistMono-VariableFont_wght.ttf",
+  variable: "--font-geist-mono",
+  weight: "100 900",
   display: "swap",
 });
 
@@ -21,7 +21,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={inter.variable}>
+    <html lang="en" className={geistMono.variable}>
       <body className="min-h-screen antialiased">
         <AuthProvider>{children}</AuthProvider>
       </body>
