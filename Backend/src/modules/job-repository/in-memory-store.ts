@@ -17,6 +17,15 @@ export class InMemoryJobStore implements JobStore {
     return structuredClone(job);
   }
 
+  async delete(id: string, userId: string): Promise<boolean> {
+    const job = this.jobs.get(id);
+    if (!job || job.userId !== userId) {
+      return false;
+    }
+    this.jobs.delete(id);
+    return true;
+  }
+
   async findById(id: string, userId: string): Promise<Job | null> {
     const job = this.jobs.get(id);
     if (!job || job.userId !== userId) {
@@ -29,6 +38,10 @@ export class InMemoryJobStore implements JobStore {
     return [...this.jobs.values()]
       .filter((job) => job.userId === userId)
       .map((job) => structuredClone(job));
+  }
+
+  async listUserIds(): Promise<string[]> {
+    return [...new Set([...this.jobs.values()].map((job) => job.userId))];
   }
 
   async deleteByUser(userId: string): Promise<void> {

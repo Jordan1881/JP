@@ -112,6 +112,8 @@ describe("JobRepository stage integration", () => {
     });
 
     expect(result.job.currentStage).toBe("Accepted");
+    expect(result.job.status).toBe("archived");
+    expect(result.job.archiveReason).toBe("accepted");
     expect(listener).toHaveBeenCalledWith({
       jobId: created.id,
       userId: "user-1",

@@ -73,7 +73,7 @@ describe("JobRepository", () => {
       lastUpdatedAt: "2026-01-02T00:00:00.000Z",
     });
 
-    const jobs = await repository.listActive({ userId: "user-1" });
+    const jobs = await repository.listActive("user-1");
 
     expect(jobs).toHaveLength(1);
     expect(jobs[0]?.id).toBe(newer.id);

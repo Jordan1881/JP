@@ -18,8 +18,13 @@ export {
   type CreateJobInput,
   type UpdateJobInput,
   type PatchJobInput,
+  type ListJobsQuery,
+  type UpdateUserPreferencesInput,
+  type UpdateProfileInput,
   type CareerProfile,
   type UserPreferences,
   type DashboardStats,
   type ApiHealthResponse,
 } from "./job.js";
+export type { AppNotification, NotificationType } from "./notifications.js";
+export type { AgentChatMessage, ProfileInterviewState } from "./agents.js";

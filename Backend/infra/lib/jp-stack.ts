@@ -1,9 +1,12 @@
 import * as cdk from "aws-cdk-lib";
 import * as apigateway from "aws-cdk-lib/aws-apigateway";
 import * as ec2 from "aws-cdk-lib/aws-ec2";
+import * as events from "aws-cdk-lib/aws-events";
+import * as targets from "aws-cdk-lib/aws-events-targets";
 import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as lambdaNodejs from "aws-cdk-lib/aws-lambda-nodejs";
 import * as rds from "aws-cdk-lib/aws-rds";
+import * as secretsmanager from "aws-cdk-lib/aws-secretsmanager";
 import { Construct } from "constructs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
@@ -40,11 +43,41 @@ export class JpStack extends cdk.Stack {
       removalPolicy: cdk.RemovalPolicy.SNAPSHOT,
     });
 
+    const anthropicSecret = new secretsmanager.Secret(this, "AnthropicApiKey", {
+      secretName: "jp/anthropic-api-key",
+      description: "Anthropic Claude API key for JP agents",
+      generateSecretString: {
+        secretStringTemplate: JSON.stringify({ ANTHROPIC_API_KEY: "" }),
+        generateStringKey: "ANTHROPIC_API_KEY",
+        excludePunctuation: true,
+      },
+    });
+
     const apiHandler = new lambdaNodejs.NodejsFunction(this, "ApiHandler", {
       entry: join(__dirname, "../../../src/handlers/api.ts"),
       handler: "handler",
       runtime: lambda.Runtime.NODEJS_22_X,
       vpc,
+      environment: {
+        DATABASE_HOST: cluster.clusterEndpoint.hostname,
+        DATABASE_PORT: cluster.clusterEndpoint.port.toString(),
+        DATABASE_NAME: "jp",
+        ANTHROPIC_SECRET_ARN: anthropicSecret.secretArn,
+      },
+      bundling: {
+        minify: true,
+        sourceMap: true,
+        target: "node22",
+        externalModules: ["aws-sdk"],
+      },
+    });
+
+    const sweepHandler = new lambdaNodejs.NodejsFunction(this, "SweepHandler", {
+      entry: join(__dirname, "../../../src/handlers/sweep-all.ts"),
+      handler: "handler",
+      runtime: lambda.Runtime.NODEJS_22_X,
+      vpc,
+      timeout: cdk.Duration.minutes(5),
       environment: {
         DATABASE_HOST: cluster.clusterEndpoint.hostname,
         DATABASE_PORT: cluster.clusterEndpoint.port.toString(),
@@ -58,7 +91,9 @@ export class JpStack extends cdk.Stack {
       },
     });
 
+    anthropicSecret.grantRead(apiHandler);
     cluster.connections.allowDefaultPortFrom(apiHandler);
+    cluster.connections.allowDefaultPortFrom(sweepHandler);
 
     const api = new apigateway.RestApi(this, "JpApi", {
       restApiName: "JP Job Player API",
@@ -72,10 +107,25 @@ export class JpStack extends cdk.Stack {
     const jobs = api.root.addResource("jobs");
     jobs.addMethod("GET", integration);
     jobs.addMethod("POST", integration);
+    const jobById = jobs.addResource("{id}");
+    jobById.addMethod("GET", integration);
+    jobById.addMethod("PATCH", integration);
+    jobById.addMethod("DELETE", integration);
+
+    new events.Rule(this, "DailySweepRule", {
+      schedule: events.Schedule.cron({ minute: "0", hour: "6" }),
+      description: "Daily staleness + archive lifecycle sweep (06:00 UTC)",
+      targets: [new targets.LambdaFunction(sweepHandler)],
+    });
 
     new cdk.CfnOutput(this, "ApiUrl", {
       value: api.url,
       description: "API Gateway base URL",
+    });
+
+    new cdk.CfnOutput(this, "AnthropicSecretArn", {
+      value: anthropicSecret.secretArn,
+      description: "Secrets Manager ARN for Anthropic API key",
     });
 
     new cdk.CfnOutput(this, "DatabaseEndpoint", {

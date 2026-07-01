@@ -49,3 +49,18 @@ export async function PATCH(
     return NextResponse.json({ error: message }, { status });
   }
 }
+
+export async function DELETE(
+  request: Request,
+  context: { params: Promise<{ id: string }> },
+) {
+  try {
+    const { id } = await context.params;
+    await getDevJobRepository().deletePermanent(getUserId(request), id);
+    return NextResponse.json({ deleted: true });
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Failed to delete job";
+    return NextResponse.json({ error: message }, { status: 400 });
+  }
+}

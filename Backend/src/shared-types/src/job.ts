@@ -56,7 +56,24 @@ export type UpdateJobInput = Partial<
 export type PatchJobInput = {
   notes?: string;
   stage?: string;
+  coverLetter?: string;
+  announcement?: string;
 };
+
+export type ListJobsQuery = {
+  q?: string;
+  stage?: string;
+  status?: JobStatus | "all";
+  sortOrder?: "asc" | "desc";
+};
+
+export type UpdateUserPreferencesInput = Partial<
+  Omit<UserPreferences, "userId">
+>;
+
+export type UpdateProfileInput = Partial<
+  Omit<CareerProfile, "userId" | "interviewCompletedAt">
+>;
 
 export interface CareerProfile {
   userId: string;
