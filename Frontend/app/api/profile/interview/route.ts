@@ -5,12 +5,17 @@ import {
   ProfileInterviewAgent,
 } from "@jp/backend";
 import { NextResponse } from "next/server";
+import { proxyOr } from "@/lib/server/backend-proxy";
 
 function getUserId(request: Request): string {
   return request.headers.get("x-user-id") ?? LOCAL_DEV_USER_ID;
 }
 
 export async function POST(request: Request) {
+  return proxyOr(request, "/profile/interview", () => interviewLocally(request));
+}
+
+async function interviewLocally(request: Request) {
   try {
     const userId = getUserId(request);
     const repository = getDevProfileRepository();

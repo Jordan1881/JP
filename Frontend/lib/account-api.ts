@@ -22,13 +22,19 @@ async function parseJson<T>(response: Response): Promise<T> {
 
 export async function fetchAccount(): Promise<UserAccount | null> {
   const user = await authGetCurrentUser();
-  const response = await fetch("/api/account", {
-    headers: await authHeaders(),
-  });
+
+  let response: Response;
+  try {
+    response = await fetch("/api/account", {
+      headers: await authHeaders(),
+    });
+  } catch {
+    // Offline / network failure only — the server is the source of truth;
+    // a 404 below means the account genuinely doesn't exist (issue #44).
+    return user?.userId ? getCachedAccount(user.userId) : null;
+  }
+
   if (response.status === 404) {
-    if (user?.userId) {
-      return getCachedAccount(user.userId);
-    }
     return null;
   }
   const data = await parseJson<{ account: UserAccount }>(response);

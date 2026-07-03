@@ -8,8 +8,8 @@ import { searchAndFilterJobs } from "@jp/shared-types";
 import { authGetCurrentUser, authHeaders } from "./auth";
 import {
   getCachedJobs,
-  mergeCachedJobs,
   removeCachedJob,
+  setCachedJobs,
   upsertCachedJob,
 } from "./jobs-cache";
 
@@ -38,21 +38,26 @@ function queryString(query: ListJobsQuery = {}): string {
 
 export async function fetchJobs(query: ListJobsQuery = {}): Promise<Job[]> {
   const userId = await currentUserId();
-  const response = await fetch(`/api/jobs${queryString(query)}`, {
-    headers: await authHeaders(),
-  });
-  const data = await parseJson<{ jobs: Job[] }>(response);
 
-  if (!userId) {
-    return data.jobs;
+  let response: Response;
+  try {
+    response = await fetch(`/api/jobs${queryString(query)}`, {
+      headers: await authHeaders(),
+    });
+  } catch {
+    // Offline / network failure — the cache is a fallback only; the server
+    // response is the source of truth whenever it answers (issue #44).
+    if (userId) {
+      return searchAndFilterJobs(getCachedJobs(userId), query);
+    }
+    throw new Error("Failed to load jobs");
   }
 
-  const merged =
-    data.jobs.length > 0
-      ? mergeCachedJobs(userId, data.jobs)
-      : getCachedJobs(userId);
-
-  return searchAndFilterJobs(merged, query);
+  const data = await parseJson<{ jobs: Job[] }>(response);
+  if (userId && !query.q && !query.stage) {
+    setCachedJobs(userId, data.jobs);
+  }
+  return data.jobs;
 }
 
 export async function createJob(input: CreateJobInput): Promise<Job> {
@@ -71,15 +76,20 @@ export async function createJob(input: CreateJobInput): Promise<Job> {
 
 export async function fetchJob(jobId: string): Promise<Job> {
   const userId = await currentUserId();
-  const response = await fetch(`/api/jobs/${jobId}`, {
-    headers: await authHeaders(),
-  });
 
-  if (response.status === 404 && userId) {
-    const cached = getCachedJobs(userId).find((job) => job.id === jobId);
+  let response: Response;
+  try {
+    response = await fetch(`/api/jobs/${jobId}`, {
+      headers: await authHeaders(),
+    });
+  } catch {
+    const cached = userId
+      ? getCachedJobs(userId).find((job) => job.id === jobId)
+      : undefined;
     if (cached) {
       return cached;
     }
+    throw new Error("Failed to load job");
   }
 
   const data = await parseJson<{ job: Job }>(response);
