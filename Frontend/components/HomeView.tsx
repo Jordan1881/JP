@@ -319,13 +319,12 @@ export function HomeView() {
           <AddJobForm onJobAdded={handleJobAdded} />
         </div>
         <div data-scroll-reveal id="applications">
-          {jobsLoading ? (
-            <p className="text-sm font-normal text-muted-foreground">
-              Loading applications…
-            </p>
-          ) : (
-            <ApplicationsTable jobs={jobs} stageList={stageList} />
-          )}
+          <ApplicationsTable
+            jobs={jobs}
+            stageList={stageList}
+            loading={jobsLoading}
+            onAddJob={() => scrollToSection("add-job")}
+          />
         </div>
       </main>
 
