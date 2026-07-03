@@ -1,21 +1,40 @@
-const UNITS: [Intl.RelativeTimeFormatUnit, number][] = [
-  ["year", 60 * 60 * 24 * 365],
-  ["month", 60 * 60 * 24 * 30],
-  ["week", 60 * 60 * 24 * 7],
-  ["day", 60 * 60 * 24],
-  ["hour", 60 * 60],
-  ["minute", 60],
-];
+export function formatRelativeTime(iso: string, now: Date = new Date()): string {
+  const date = new Date(iso);
+  const diffMs = date.getTime() - now.getTime();
+  const diffSec = Math.round(diffMs / 1000);
+  const absSec = Math.abs(diffSec);
 
-export function formatRelativeTime(iso: string, now = new Date()): string {
-  const then = new Date(iso).getTime();
-  const seconds = Math.round((then - now.getTime()) / 1000);
   const rtf = new Intl.RelativeTimeFormat(undefined, { numeric: "auto" });
-  for (const [unit, secondsInUnit] of UNITS) {
-    const value = Math.round(seconds / secondsInUnit);
-    if (Math.abs(value) >= 1) {
-      return rtf.format(value, unit);
-    }
+
+  if (absSec < 60) {
+    return rtf.format(diffSec, "second");
   }
-  return rtf.format(0, "second");
+  const diffMin = Math.round(diffSec / 60);
+  if (Math.abs(diffMin) < 60) {
+    return rtf.format(diffMin, "minute");
+  }
+  const diffHour = Math.round(diffSec / 3600);
+  if (Math.abs(diffHour) < 24) {
+    return rtf.format(diffHour, "hour");
+  }
+  const diffDay = Math.round(diffSec / 86400);
+  if (Math.abs(diffDay) < 30) {
+    return rtf.format(diffDay, "day");
+  }
+  const diffMonth = Math.round(diffDay / 30);
+  if (Math.abs(diffMonth) < 12) {
+    return rtf.format(diffMonth, "month");
+  }
+  const diffYear = Math.round(diffDay / 365);
+  return rtf.format(diffYear, "year");
+}
+
+export function formatDateTimeTooltip(iso: string): string {
+  return new Date(iso).toLocaleString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
 }

@@ -6,6 +6,7 @@ import { searchAndFilterJobs } from "@jp/shared-types";
 import { gsap, registerGsapPlugins } from "@/lib/gsap";
 import { AddJobForm } from "@/components/AddJobForm";
 import { ApplicationsTable } from "@/components/ApplicationsTable";
+import { ApplicationsTableSkeleton } from "@/components/ApplicationsTableSkeleton";
 import { HeroVisual } from "@/components/HeroVisual";
 import { NotificationBell } from "@/components/NotificationBell";
 import { NavUserMenu } from "@/components/NavUserMenu";
@@ -319,12 +320,11 @@ export function HomeView() {
           <AddJobForm onJobAdded={handleJobAdded} />
         </div>
         <div data-scroll-reveal id="applications">
-          <ApplicationsTable
-            jobs={jobs}
-            stageList={stageList}
-            loading={jobsLoading}
-            onAddJob={() => scrollToSection("add-job")}
-          />
+          {jobsLoading ? (
+            <ApplicationsTableSkeleton />
+          ) : (
+            <ApplicationsTable jobs={jobs} stageList={stageList} />
+          )}
         </div>
       </main>
 
