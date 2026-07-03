@@ -20,4 +20,17 @@ describe("UserPreferencesRepository", () => {
     expect(updated.staleNotificationsEnabled).toBe(false);
     expect(updated.stageList).not.toContain("Accepted");
   });
+
+  it("preserves custom stage list order through update and reload", async () => {
+    const repository = new UserPreferencesRepository(
+      new InMemoryUserPreferencesStore(),
+    );
+    const ordered = ["Final interview", "Phone screen", "Offer"];
+
+    const updated = await repository.update("u1", { stageList: ordered });
+    expect(updated.stageList).toEqual(ordered);
+
+    const reloaded = await repository.getOrCreate("u1");
+    expect(reloaded.stageList).toEqual(ordered);
+  });
 });

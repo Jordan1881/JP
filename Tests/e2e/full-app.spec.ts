@@ -75,6 +75,7 @@ test.describe("full app top-to-bottom", () => {
     await expect(page.getByText("Appearance")).toBeVisible();
     await expect(page.getByRole("button", { name: "Light" })).toBeVisible();
     await expect(page.getByText("Interview stages")).toBeVisible();
+    await expect(page.getByTestId("stage-drag-handle").first()).toBeVisible();
 
     // Account
     await page.goto("/account");

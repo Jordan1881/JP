@@ -21,42 +21,6 @@ export function resolvePipelineStages(stageList?: StageList): string[] {
   return [...pipeline, ...TERMINAL_STAGES];
 }
 
-export function buildStageFilterOptions(
-  stageList: StageList | undefined,
-  jobs: Job[],
-): string[] {
-  const pipeline = resolvePipelineStages(stageList);
-  const merged = [...pipeline];
-
-  for (const job of jobs) {
-    if (!merged.includes(job.currentStage)) {
-      merged.push(job.currentStage);
-    }
-  }
-
-  return merged;
-}
-
-export function sortStagesByPipeline(
-  stages: string[],
-  pipelineOrder: string[],
-): string[] {
-  return [...stages].sort((left, right) => {
-    const leftIndex = pipelineOrder.indexOf(left);
-    const rightIndex = pipelineOrder.indexOf(right);
-    if (leftIndex === -1 && rightIndex === -1) {
-      return left.localeCompare(right);
-    }
-    if (leftIndex === -1) {
-      return 1;
-    }
-    if (rightIndex === -1) {
-      return -1;
-    }
-    return leftIndex - rightIndex;
-  });
-}
-
 export function getDisplayStages(job: Job, stageList?: StageList): string[] {
   const pipeline = resolvePipelineStages(stageList);
   const visited = Object.keys(job.stageHistory);

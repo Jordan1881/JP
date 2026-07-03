@@ -2,7 +2,6 @@ import { describe, expect, it, vi } from "vitest";
 import type { Job } from "@jp/shared-types";
 import {
   applyStageChange,
-  buildStageFilterOptions,
   getDisplayStages,
   resolvePipelineStages,
   SUBMITTED_RESUME_STAGE,
@@ -28,16 +27,6 @@ describe("StagePipelineManager", () => {
     const stages = resolvePipelineStages();
     expect(stages).toContain("Accepted");
     expect(stages).toContain("Rejected");
-  });
-
-  it("includes custom pipeline stages with no active jobs in filter options", () => {
-    const options = buildStageFilterOptions(
-      ["Submitted resume", "Culture fit", "Offer"],
-      [],
-    );
-    expect(options).toContain("Culture fit");
-    expect(options).toContain("Accepted");
-    expect(options).toContain("Rejected");
   });
 
   it("timestamps non-sequential forward stage changes", () => {
@@ -79,19 +68,6 @@ describe("StagePipelineManager", () => {
 
     const rejected = applyStageChange(sampleJob(), "Rejected");
     expect(rejected.terminalStageEvent?.stage).toBe("Rejected");
-  });
-
-  it("includes preference stages with zero active jobs in filter options", () => {
-    const options = buildStageFilterOptions(
-      [SUBMITTED_RESUME_STAGE, "Contract", "Offer"],
-      [sampleJob({ currentStage: "Phone screen" })],
-    );
-
-    expect(options).toContain("Contract");
-    expect(options).toContain("Accepted");
-    expect(options).toContain("Rejected");
-    expect(options.indexOf("Contract")).toBeLessThan(options.indexOf("Accepted"));
-    expect(options.indexOf("Phone screen")).toBeGreaterThan(options.indexOf("Offer"));
   });
 
   it("includes visited stages in display list even if not in default pipeline", () => {

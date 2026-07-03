@@ -1,21 +1,37 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { DashboardStats } from "@jp/shared-types";
+import { resolvePipelineStages, sortStagesByPipeline } from "@jp/shared-types";
+import { fetchPreferences } from "@/lib/preferences-api";
 import { fetchDashboardStats } from "@/lib/profile-api";
 
 export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [pipelineOrder, setPipelineOrder] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    void fetchDashboardStats()
-      .then(setStats)
+    void Promise.all([fetchDashboardStats(), fetchPreferences()])
+      .then(([nextStats, preferences]) => {
+        setStats(nextStats);
+        setPipelineOrder(resolvePipelineStages(preferences.stageList));
+      })
       .catch((err: unknown) =>
         setError(err instanceof Error ? err.message : "Failed to load dashboard"),
       );
   }, []);
+
+  const orderedActiveByStage = useMemo(() => {
+    if (!stats) {
+      return [];
+    }
+    return sortStagesByPipeline(
+      Object.keys(stats.activeByStage),
+      pipelineOrder,
+    ).map((stage) => [stage, stats.activeByStage[stage]] as const);
+  }, [pipelineOrder, stats]);
 
   return (
     <div className="min-h-screen bg-background px-6 py-10">
@@ -52,7 +68,7 @@ export default function DashboardPage() {
               Active by stage
             </h2>
             <ul className="mt-4 space-y-2">
-              {Object.entries(stats.activeByStage).map(([stage, count]) => (
+              {orderedActiveByStage.map(([stage, count]) => (
                 <li key={stage} className="flex justify-between text-sm">
                   <span className="text-foreground">{stage}</span>
                   <span className="text-muted-foreground">{count}</span>
