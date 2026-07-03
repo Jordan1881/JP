@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Job } from "@jp/shared-types";
-import { getDisplayStages } from "@jp/shared-types";
+import { TERMINAL_STAGES, getDisplayStages } from "@jp/shared-types";
 import {
   archiveJob,
   deleteJob,
@@ -154,16 +154,14 @@ export function JobDetailView({ jobId }: JobDetailViewProps) {
   }
 
   const stages = getDisplayStages(job, stageList);
-
-  const historyCollapsedByDefault = historyEntries.length > 5;
-  const showFullHistory = historyExpanded || !historyCollapsedByDefault;
-  const visibleHistory = showFullHistory
-    ? historyEntries
-    : historyEntries.slice(0, 5);
-
   const historyEntries = Object.entries(job.stageHistory).sort(
     ([, left], [, right]) => right.localeCompare(left),
   );
+  const historyCollapsedByDefault = historyEntries.length > 5;
+  const displayedHistory =
+    historyExpanded || !historyCollapsedByDefault
+      ? historyEntries
+      : historyEntries.slice(0, 5);
 
   return (
     <div className="min-h-screen bg-background">
@@ -303,29 +301,20 @@ export function JobDetailView({ jobId }: JobDetailViewProps) {
         </section>
 
         <section className="mt-10 rounded-xl border border-border bg-card/80 p-6">
-          <button
-            type="button"
-            onClick={() => setHistoryExpanded((value) => !value)}
-            className="flex w-full items-center justify-between text-left"
-          >
-            <h2 className="text-sm font-semibold tracking-widest text-muted-foreground uppercase">
-              Stage history
-              {historyEntries.length > 0 ? (
-                <span className="ml-2 font-normal normal-case text-muted-foreground">
-                  ({historyEntries.length})
-                </span>
-              ) : null}
-            </h2>
-            <span className="text-xs text-muted-foreground">
-              {historyExpanded ? "Hide" : "Show"}
-            </span>
-          </button>
-          {showFullHistory || historyCollapsedByDefault ? (
-            historyEntries.length === 0 ? (
-              <p className="mt-3 text-sm text-muted-foreground">No history yet.</p>
-            ) : (
+          <h2 className="text-sm font-semibold tracking-widest text-muted-foreground uppercase">
+            Stage history
+            {historyEntries.length > 0 ? (
+              <span className="ml-2 font-normal normal-case text-muted-foreground">
+                ({historyEntries.length})
+              </span>
+            ) : null}
+          </h2>
+          {historyEntries.length === 0 ? (
+            <p className="mt-3 text-sm text-muted-foreground">No history yet.</p>
+          ) : (
+            <>
               <ul className="mt-4 space-y-3">
-                {visibleHistory.map(([stage, timestamp]) => (
+                {displayedHistory.map(([stage, timestamp]) => (
                   <li
                     key={stage}
                     className="flex items-center justify-between gap-4 text-sm"
@@ -346,17 +335,19 @@ export function JobDetailView({ jobId }: JobDetailViewProps) {
                   </li>
                 ))}
               </ul>
-            )
-            {historyCollapsedByDefault ? (
-              <button
-                type="button"
-                onClick={() => setHistoryExpanded((value) => !value)}
-                className="mt-4 text-xs text-muted-foreground underline hover:text-foreground"
-              >
-                {historyExpanded ? "Show less" : `Show all ${historyEntries.length} entries`}
-              </button>
-            ) : null}
-          ) : null}
+              {historyCollapsedByDefault ? (
+                <button
+                  type="button"
+                  onClick={() => setHistoryExpanded((value) => !value)}
+                  className="mt-4 text-xs text-muted-foreground underline hover:text-foreground"
+                >
+                  {historyExpanded
+                    ? "Show less"
+                    : `Show all ${historyEntries.length} entries`}
+                </button>
+              ) : null}
+            </>
+          )}
         </section>
 
         <section className="mt-10 rounded-xl border border-border bg-card/80 p-6">
