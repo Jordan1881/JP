@@ -1,6 +1,7 @@
 import type {
   CreateJobInput,
   Job,
+  JobImportFromUrlResult,
   ListJobsQuery,
   PatchJobInput,
 } from "@jp/shared-types";
@@ -58,6 +59,18 @@ export async function fetchJobs(query: ListJobsQuery = {}): Promise<Job[]> {
     setCachedJobs(userId, data.jobs);
   }
   return data.jobs;
+}
+
+export async function importJobFromUrl(
+  url: string,
+): Promise<JobImportFromUrlResult> {
+  const response = await fetch("/api/jobs/import-url", {
+    method: "POST",
+    headers: await authHeaders(),
+    body: JSON.stringify({ url }),
+  });
+  const data = await parseJson<{ fields: JobImportFromUrlResult }>(response);
+  return data.fields;
 }
 
 export async function createJob(input: CreateJobInput): Promise<Job> {
