@@ -1,5 +1,6 @@
 import type pg from "pg";
 import { resolveDatabaseConfig } from "../db/config.js";
+import { getIamAuthToken, usesIamDatabaseAuth } from "../db/iam-auth.js";
 import { createPool } from "../db/pool.js";
 import { runMigrations } from "../db/migrate.js";
 import { migrations } from "../db/migrations/index.js";
@@ -34,7 +35,8 @@ import {
 /**
  * Selects the persistence backend for the monolithic ApiHandler and the
  * SweepHandler (ADR-0003): Postgres when the environment configures a
- * database (DATABASE_URL, or DATABASE_HOST with credentials or DB_SECRET_ARN),
+ * database (DATABASE_URL, DATABASE_HOST with IAM auth, credentials, or
+ * DB_SECRET_ARN),
  * in-memory dev singletons otherwise.
  *
  * One pool per Lambda container, created lazily on first use. Pending
@@ -84,21 +86,29 @@ async function initPool(): Promise<pg.Pool | null> {
     return null;
   }
 
-  const needsCredentials =
-    !config.connectionString && (!config.user || !config.password);
-  if (needsCredentials) {
-    const secretArn = process.env.DB_SECRET_ARN;
-    if (!secretArn) {
-      throw new Error(
-        "DATABASE_HOST is set but no credentials: provide DATABASE_USER/DATABASE_PASSWORD or DB_SECRET_ARN",
-      );
-    }
-    const credentials = await fetchDbCredentials(secretArn);
+  if (!config.connectionString && usesIamDatabaseAuth()) {
     config = {
       ...config,
-      user: credentials.username,
-      password: credentials.password,
+      user: config.user ?? process.env.DATABASE_USER ?? "postgres",
+      password: await getIamAuthToken(config),
     };
+  } else {
+    const needsCredentials =
+      !config.connectionString && (!config.user || !config.password);
+    if (needsCredentials) {
+      const secretArn = process.env.DB_SECRET_ARN;
+      if (!secretArn) {
+        throw new Error(
+          "DATABASE_HOST is set but no credentials: provide DATABASE_USER/DATABASE_PASSWORD, DATABASE_USE_IAM_AUTH, or DB_SECRET_ARN",
+        );
+      }
+      const credentials = await fetchDbCredentials(secretArn);
+      config = {
+        ...config,
+        user: credentials.username,
+        password: credentials.password,
+      };
+    }
   }
 
   const pool = createPool(config);

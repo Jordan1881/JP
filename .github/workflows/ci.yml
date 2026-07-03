@@ -54,15 +54,24 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Build CDK app
+        run: |
+          pnpm --filter @jp/shared-types build
+          pnpm --filter @jp/backend build
+          pnpm --filter @jp/infra build
       - name: CDK deploy
-        continue-on-error: true
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: ${{ secrets.AWS_REGION }}
+          CDK_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
         run: |
-          if [ -z "$AWS_ACCESS_KEY_ID" ]; then
-            echo "Skipping CDK deploy: AWS_ACCESS_KEY_ID secret is not configured."
+          if [ -z "$AWS_ACCESS_KEY_ID" ] || [ -z "$AWS_SECRET_ACCESS_KEY" ]; then
+            echo "Skipping CDK deploy: AWS_ACCESS_KEY_ID or AWS_SECRET_ACCESS_KEY is not configured."
+            exit 0
+          fi
+          if [ -z "$AWS_REGION" ]; then
+            echo "Skipping CDK deploy: AWS_REGION is not configured."
             exit 0
           fi
           pnpm --filter @jp/infra exec cdk deploy --require-approval never

@@ -107,17 +107,13 @@ export function HeroVisual() {
           stroke="rgba(255,255,255,0.15)"
           strokeWidth="1.5"
         />
-        <text
-          x="200"
-          y="206"
-          textAnchor="middle"
-          fill="rgba(255,255,255,0.85)"
-          fontSize="22"
-          fontWeight="600"
-          fontFamily="var(--font-geist-mono), monospace"
-        >
-          JP
-        </text>
+        <image
+          href="/logo-light.svg"
+          x="181"
+          y="180"
+          width="38"
+          height="40"
+        />
       </svg>
     </div>
   );

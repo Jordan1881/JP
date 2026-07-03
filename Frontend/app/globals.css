@@ -145,3 +145,17 @@
   background: var(--scrollbar-thumb);
   border-radius: 3px;
 }
+
+@keyframes jp-top-load-bar {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(280%);
+  }
+}
+
+.jp-top-load-bar {
+  animation: jp-top-load-bar 1.1s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.35);
+}

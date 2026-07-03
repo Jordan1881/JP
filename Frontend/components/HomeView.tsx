@@ -10,6 +10,7 @@ import { HeroVisual } from "@/components/HeroVisual";
 import { NotificationBell } from "@/components/NotificationBell";
 import { NavUserMenu } from "@/components/NavUserMenu";
 import { AppLogo } from "@/components/AppLogo";
+import { TopLoadBar } from "@/components/TopLoadBar";
 import { useAuth } from "@/components/AuthProvider";
 import { authSignOut, isAuthConfigured } from "@/lib/auth";
 import { fetchJobs } from "@/lib/jobs-api";
@@ -163,6 +164,7 @@ export function HomeView() {
 
   return (
     <div ref={rootRef} className="min-h-screen bg-background">
+      <TopLoadBar active={jobsLoading} />
       <div className="pointer-events-none fixed inset-0 grid-dots opacity-60" />
       <div className="pointer-events-none fixed inset-x-0 top-0 h-[480px] bg-gradient-to-b from-white/[0.03] to-transparent" />
 
@@ -318,7 +320,9 @@ export function HomeView() {
         </div>
         <div data-scroll-reveal id="applications">
           {jobsLoading ? (
-            <p className="text-sm text-muted-foreground">Loading applications…</p>
+            <p className="text-sm font-normal text-muted-foreground">
+              Loading applications…
+            </p>
           ) : (
             <ApplicationsTable jobs={jobs} stageList={stageList} />
           )}

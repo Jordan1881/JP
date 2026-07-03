@@ -12,6 +12,7 @@ import {
 import { usePathname, useRouter } from "next/navigation";
 import type { UserAccount } from "@jp/shared-types";
 import { needsTermsReacceptance } from "@jp/shared-types";
+import { TopLoadBar } from "@/components/TopLoadBar";
 import { fetchAccount } from "@/lib/account-api";
 import { getCachedAccount } from "@/lib/account-cache";
 import { authGetCurrentUser, isAuthConfigured } from "@/lib/auth";
@@ -27,6 +28,31 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 const PUBLIC_PATHS = new Set(["/login", "/signup", "/terms"]);
+
+function applyPostAuthRouting(
+  pathname: string,
+  router: ReturnType<typeof useRouter>,
+  nextAccount: UserAccount | null,
+) {
+  if (pathname === "/signup" && nextAccount) {
+    router.replace("/");
+    return;
+  }
+
+  if (!PUBLIC_PATHS.has(pathname)) {
+    if (!nextAccount && pathname !== "/signup") {
+      router.replace("/signup");
+      return;
+    }
+    if (
+      nextAccount &&
+      needsTermsReacceptance(nextAccount) &&
+      pathname !== "/accept-terms"
+    ) {
+      router.replace("/accept-terms");
+    }
+  }
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
@@ -46,47 +72,52 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     configureAmplify();
+    let cancelled = false;
 
     async function load() {
-      if (!isAuthConfigured()) {
-        setLoading(false);
-        return;
-      }
-
-      const user = await authGetCurrentUser();
-      if (!user) {
-        setUserId(null);
-        setAccount(null);
-        setLoading(false);
-        if (!PUBLIC_PATHS.has(pathname)) {
-          router.replace("/login");
-        }
-        return;
-      }
-
-      setUserId(user.userId);
-      const nextAccount =
-        (await fetchAccount()) ?? getCachedAccount(user.userId);
-      setAccount(nextAccount);
-      setLoading(false);
-
-      if (pathname === "/signup" && nextAccount) {
-        router.replace("/");
-        return;
-      }
-
-      if (!PUBLIC_PATHS.has(pathname)) {
-        if (!nextAccount && pathname !== "/signup") {
-          router.replace("/signup");
+      try {
+        if (!isAuthConfigured()) {
           return;
         }
-        if (nextAccount && needsTermsReacceptance(nextAccount) && pathname !== "/accept-terms") {
-          router.replace("/accept-terms");
+
+        const user = await authGetCurrentUser();
+        if (cancelled) {
+          return;
+        }
+
+        if (!user) {
+          setUserId(null);
+          setAccount(null);
+          if (!PUBLIC_PATHS.has(pathname)) {
+            router.replace("/login");
+          }
+          return;
+        }
+
+        setUserId(user.userId);
+        const cached = getCachedAccount(user.userId);
+        if (cached) {
+          setAccount(cached);
+        }
+
+        const nextAccount = (await fetchAccount()) ?? cached;
+        if (cancelled) {
+          return;
+        }
+
+        setAccount(nextAccount);
+        applyPostAuthRouting(pathname, router, nextAccount);
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
         }
       }
     }
 
     void load();
+    return () => {
+      cancelled = true;
+    };
   }, [pathname, router]);
 
   const value = useMemo(
@@ -94,15 +125,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [loading, userId, account, refreshAccount],
   );
 
-  if (loading && isAuthConfigured() && !PUBLIC_PATHS.has(pathname)) {
+  const showAuthGate = loading && isAuthConfigured() && !PUBLIC_PATHS.has(pathname);
+
+  if (showAuthGate) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background text-sm text-muted-foreground">
-        Loading…
-      </div>
+      <>
+        <TopLoadBar active />
+        <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-background">
+          <p className="text-sm font-normal text-muted-foreground">
+            Loading your account…
+          </p>
+        </div>
+      </>
     );
   }
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={value}>
+      <TopLoadBar active={loading} />
+      {children}
+    </AuthContext.Provider>
+  );
 }
 
 export function useAuth(): AuthContextValue {
