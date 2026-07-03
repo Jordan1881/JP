@@ -19,3 +19,4 @@ export {
   InMemoryUserPreferencesStore,
   type UserPreferencesStore,
 } from "./user-preferences.js";
+export { PostgresUserPreferencesStore } from "./postgres-store.js";
