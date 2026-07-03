@@ -1,9 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { MockClaudeClient } from "@backend/modules/claude-api-client/index.js";
+import type { ClaudeClient } from "@backend/modules/claude-api-client/index.js";
 import {
   CoverLetterAgent,
   JobAnnouncementAgent,
 } from "@backend/modules/generation-agents/index.js";
+
+class StubClaudeClient implements ClaudeClient {
+  async complete(): Promise<string> {
+    return "Draft based on your input: profile data";
+  }
+}
 
 const profile = {
   userId: "u1",
@@ -34,13 +40,13 @@ const job = {
 
 describe("Generation agents", () => {
   it("generates cover letter with mocked Claude client", async () => {
-    const agent = new CoverLetterAgent(new MockClaudeClient());
+    const agent = new CoverLetterAgent(new StubClaudeClient());
     const draft = await agent.generate(job, profile);
     expect(draft).toContain("Draft based on your input");
   });
 
   it("generates announcement for accepted jobs", async () => {
-    const agent = new JobAnnouncementAgent(new MockClaudeClient());
+    const agent = new JobAnnouncementAgent(new StubClaudeClient());
     const draft = await agent.generate(job, profile);
     expect(draft.length).toBeGreaterThan(0);
   });

@@ -1,7 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  CLAUDE_MODELS,
   createClaudeClient,
-  MockClaudeClient,
+  parseStructuredOutput,
   resetAnthropicSecretCacheForTests,
 } from "@backend/modules/claude-api-client/index.js";
 
@@ -29,24 +30,19 @@ describe("createClaudeClient", () => {
     }
     resetAnthropicSecretCacheForTests();
     send.mockReset();
+    vi.restoreAllMocks();
   });
 
-  it("returns mock client when no key or secret ARN is configured", async () => {
+  it("throws when no key or secret ARN is configured", () => {
     delete process.env.ANTHROPIC_API_KEY;
     delete process.env.ANTHROPIC_SECRET_ARN;
 
-    const client = createClaudeClient();
-    expect(client).toBeInstanceOf(MockClaudeClient);
-    await expect(
-      client.complete({
-        model: "claude-sonnet-4-20250514",
-        system: "test",
-        messages: [{ role: "user", content: "hello" }],
-      }),
-    ).resolves.toContain("hello");
+    expect(() => createClaudeClient()).toThrow(
+      "Set ANTHROPIC_API_KEY (local dev) or ANTHROPIC_SECRET_ARN (Lambda)",
+    );
   });
 
-  it("uses explicit api key parameter over environment", async () => {
+  it("uses explicit api key parameter over environment", () => {
     const client = createClaudeClient("sk-ant-explicit");
     expect(client.constructor.name).toBe("AnthropicClaudeClient");
   });
@@ -73,14 +69,63 @@ describe("createClaudeClient", () => {
     );
 
     await expect(
-      client.complete({
-        model: "claude-sonnet-4-20250514",
+      client.complete("generation", {
         system: "test",
         messages: [{ role: "user", content: "hi" }],
       }),
     ).resolves.toBe("generated");
 
     expect(send).toHaveBeenCalledOnce();
+    const [, requestInit] = fetchSpy.mock.calls[0] as [string, RequestInit];
+    const body = JSON.parse(requestInit.body as string) as { model: string };
+    expect(body.model).toBe(CLAUDE_MODELS.generation);
+    fetchSpy.mockRestore();
+  });
+
+  it("selects interview-tier model for interview calls", async () => {
+    const client = createClaudeClient("sk-ant-test");
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          content: [{ type: "text", text: "question" }],
+        }),
+        { status: 200 },
+      ),
+    );
+
+    await client.complete("interview", {
+      system: "test",
+      messages: [{ role: "user", content: "start" }],
+    });
+
+    const [, requestInit] = fetchSpy.mock.calls[0] as [string, RequestInit];
+    const body = JSON.parse(requestInit.body as string) as { model: string };
+    expect(body.model).toBe(CLAUDE_MODELS.interview);
+    fetchSpy.mockRestore();
+  });
+
+  it("retries on transient 429 responses", async () => {
+    const client = createClaudeClient("sk-ant-test");
+    const fetchSpy = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(new Response("rate limited", { status: 429 }))
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            content: [{ type: "text", text: "ok after retry" }],
+          }),
+          { status: 200 },
+        ),
+      );
+
+    await expect(
+      client.complete("generation", {
+        system: "test",
+        messages: [{ role: "user", content: "hi" }],
+      }),
+    ).resolves.toBe("ok after retry");
+
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
     fetchSpy.mockRestore();
   });
 
@@ -92,8 +137,7 @@ describe("createClaudeClient", () => {
 
     const client = createClaudeClient();
     await expect(
-      client.complete({
-        model: "claude-sonnet-4-20250514",
+      client.complete("generation", {
         system: "test",
         messages: [{ role: "user", content: "hi" }],
       }),
@@ -110,11 +154,29 @@ describe("createClaudeClient", () => {
 
     const client = createClaudeClient();
     await expect(
-      client.complete({
-        model: "claude-sonnet-4-20250514",
+      client.complete("generation", {
         system: "test",
         messages: [{ role: "user", content: "hi" }],
       }),
     ).rejects.toThrow("missing ANTHROPIC_API_KEY");
+  });
+});
+
+describe("parseStructuredOutput", () => {
+  it("parses raw JSON", () => {
+    expect(parseStructuredOutput<{ techStack: string[] }>('{"techStack":["Go"]}')).toEqual({
+      techStack: ["Go"],
+    });
+  });
+
+  it("parses fenced JSON blocks", () => {
+    const raw = '```json\n{"seniority":"Senior"}\n```';
+    expect(parseStructuredOutput<{ seniority: string }>(raw)).toEqual({
+      seniority: "Senior",
+    });
+  });
+
+  it("throws on invalid JSON", () => {
+    expect(() => parseStructuredOutput("not json")).toThrow("not valid JSON");
   });
 });
