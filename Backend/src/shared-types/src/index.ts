@@ -29,9 +29,11 @@ export {
 export {
   SUBMITTED_RESUME_STAGE,
   DEFAULT_PIPELINE_STAGES,
+  buildStageFilterOptions,
   getDisplayStages,
   resolvePipelineStages,
   searchAndFilterJobs,
+  sortStagesByPipeline,
 } from "./pipeline.js";
 export type { AppNotification, NotificationType } from "./notifications.js";
 export type { AgentChatMessage, ProfileInterviewState } from "./agents.js";

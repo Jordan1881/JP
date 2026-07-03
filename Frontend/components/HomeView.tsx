@@ -13,6 +13,7 @@ import { AppLogo } from "@/components/AppLogo";
 import { useAuth } from "@/components/AuthProvider";
 import { authSignOut, isAuthConfigured } from "@/lib/auth";
 import { fetchJobs } from "@/lib/jobs-api";
+import { fetchPreferences } from "@/lib/preferences-api";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -68,6 +69,7 @@ export function HomeView() {
   const router = useRouter();
   const { account } = useAuth();
   const [jobs, setJobs] = useState<Job[]>([]);
+  const [stageList, setStageList] = useState<string[]>([]);
   const [jobsLoading, setJobsLoading] = useState(true);
   const [jobsError, setJobsError] = useState<string | null>(null);
 
@@ -75,10 +77,14 @@ export function HomeView() {
     setJobsLoading(true);
     setJobsError(null);
     try {
-      const next = await fetchJobs({ status: "active", sortOrder: "desc" });
+      const [next, preferences] = await Promise.all([
+        fetchJobs({ status: "active", sortOrder: "desc" }),
+        fetchPreferences(),
+      ]);
       setJobs((current) =>
         next.length === 0 && current.length > 0 ? current : next,
       );
+      setStageList(preferences.stageList);
     } catch (err) {
       setJobsError(err instanceof Error ? err.message : "Failed to load jobs");
     } finally {
@@ -314,7 +320,7 @@ export function HomeView() {
           {jobsLoading ? (
             <p className="text-sm text-muted-foreground">Loading applications…</p>
           ) : (
-            <ApplicationsTable jobs={jobs} />
+            <ApplicationsTable jobs={jobs} stageList={stageList} />
           )}
         </div>
       </main>
