@@ -5,7 +5,10 @@ import type { CreateJobInput } from "@jp/shared-types";
 import { gsap } from "@/lib/gsap";
 import { createJob, importJobFromUrl } from "@/lib/jobs-api";
 import type { Job } from "@jp/shared-types";
+import { getErrorMessage } from "@/lib/feedback";
 import { cn } from "@/lib/utils";
+import { FormError } from "@/components/FormError";
+import { useToast } from "@/components/ToastProvider";
 import { TopLoadBar } from "@/components/TopLoadBar";
 
 const emptyForm: CreateJobInput = {
@@ -25,6 +28,7 @@ const inputClassName = cn(
 );
 
 export function AddJobForm({ onJobAdded }: { onJobAdded?: (job: Job) => void }) {
+  const { showSuccess, showError } = useToast();
   const buttonRef = useRef<HTMLButtonElement>(null);
   const [form, setForm] = useState(emptyForm);
   const [error, setError] = useState<string | null>(null);
@@ -65,9 +69,7 @@ export function AddJobForm({ onJobAdded }: { onJobAdded?: (job: Job) => void }) 
       }));
       setExpanded(true);
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to import from URL",
-      );
+      (() => { const message = getErrorMessage(err, "Failed to import from URL"); setError(message); showError(message); })();
     } finally {
       setImporting(false);
     }
@@ -106,9 +108,10 @@ export function AddJobForm({ onJobAdded }: { onJobAdded?: (job: Job) => void }) 
       }
 
       setForm({ ...emptyForm, submissionDate: form.submissionDate });
+      showSuccess("Application added.");
       onJobAdded?.(job);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to add job");
+      (() => { const message = getErrorMessage(err, "Failed to add job"); setError(message); showError(message); })();
     } finally {
       setSubmitting(false);
     }
@@ -239,14 +242,7 @@ export function AddJobForm({ onJobAdded }: { onJobAdded?: (job: Job) => void }) 
         ) : null}
 
         <div className="flex flex-wrap items-center gap-4 md:col-span-2">
-          {error ? (
-            <p
-              id="form-error"
-              className="text-sm font-normal text-destructive"
-            >
-              {error}
-            </p>
-          ) : null}
+          <FormError id="form-error" message={error} onDismiss={() => setError(null)} />
           <button
             ref={buttonRef}
             type="submit"

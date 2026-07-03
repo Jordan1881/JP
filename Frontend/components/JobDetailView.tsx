@@ -15,6 +15,8 @@ import {
 } from "@/lib/jobs-api";
 import { fetchPreferences } from "@/lib/preferences-api";
 import { fetchProfile } from "@/lib/profile-api";
+import { useToast } from "@/components/ToastProvider";
+import { getErrorMessage } from "@/lib/feedback";
 import { cn } from "@/lib/utils";
 
 interface JobDetailViewProps {
@@ -38,6 +40,7 @@ const inputClassName = cn(
 );
 
 export function JobDetailView({ jobId }: JobDetailViewProps) {
+  const { showSuccess, showError } = useToast();
   const [job, setJob] = useState<Job | null>(null);
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(true);
@@ -64,7 +67,7 @@ export function JobDetailView({ jobId }: JobDetailViewProps) {
       setStageList(preferences.stageList);
       setProfileComplete(Boolean(profile?.interviewCompletedAt));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load job");
+      (() => { const message = getErrorMessage(err, "Failed to load job"); setError(message); showError(message); })();
     } finally {
       setLoading(false);
     }
@@ -84,8 +87,9 @@ export function JobDetailView({ jobId }: JobDetailViewProps) {
     try {
       const updated = await patchJob(jobId, { stage });
       setJob(updated);
+      showSuccess("Stage updated.");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to update stage");
+      (() => { const message = getErrorMessage(err, "Failed to update stage"); setError(message); showError(message); })();
     } finally {
       setChangingStage(null);
     }
@@ -102,8 +106,9 @@ export function JobDetailView({ jobId }: JobDetailViewProps) {
       const updated = await patchJob(jobId, { notes });
       setJob(updated);
       setNotes(updated.notes ?? "");
+      showSuccess("Notes saved.");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save notes");
+      (() => { const message = getErrorMessage(err, "Failed to save notes"); setError(message); showError(message); })();
     } finally {
       setSavingNotes(false);
     }
@@ -312,10 +317,8 @@ export function JobDetailView({ jobId }: JobDetailViewProps) {
             onClick={() => {
               setGenerating(true);
               void generateCoverLetter(jobId, { action: "generate" })
-                .then((result) => setJob(result.job))
-                .catch((err: unknown) =>
-                  setError(err instanceof Error ? err.message : "Generation failed"),
-                )
+                .then((result) => { setJob(result.job); showSuccess("Cover letter generated."); })
+                .catch((err: unknown) => { const message = getErrorMessage(err, "Generation failed"); setError(message); showError(message); })
                 .finally(() => setGenerating(false));
             }}
             className="mt-4 rounded-md bg-primary px-4 py-2 text-xs uppercase tracking-widest text-primary-foreground disabled:opacity-50"
@@ -346,6 +349,7 @@ export function JobDetailView({ jobId }: JobDetailViewProps) {
                     .then((result) => {
                       setJob(result.job);
                       setRevision("");
+                      showSuccess("Cover letter revised.");
                     })
                     .finally(() => setGenerating(false));
                 }}
@@ -368,10 +372,8 @@ export function JobDetailView({ jobId }: JobDetailViewProps) {
               onClick={() => {
                 setGenerating(true);
                 void generateAnnouncement(jobId, { action: "generate" })
-                  .then((result) => setJob(result.job))
-                  .catch((err: unknown) =>
-                    setError(err instanceof Error ? err.message : "Generation failed"),
-                  )
+                  .then((result) => { setJob(result.job); showSuccess("Announcement generated."); })
+                  .catch((err: unknown) => { const message = getErrorMessage(err, "Generation failed"); setError(message); showError(message); })
                   .finally(() => setGenerating(false));
               }}
               className="mt-4 rounded-md bg-primary px-4 py-2 text-xs uppercase tracking-widest text-primary-foreground disabled:opacity-50"
@@ -402,10 +404,9 @@ export function JobDetailView({ jobId }: JobDetailViewProps) {
                       .then((result) => {
                         setJob(result.job);
                         setAnnouncementRevision("");
+                        showSuccess("Announcement revised.");
                       })
-                      .catch((err: unknown) =>
-                        setError(err instanceof Error ? err.message : "Revision failed"),
-                      )
+                      .catch((err: unknown) => { const message = getErrorMessage(err, "Revision failed"); setError(message); showError(message); })
                       .finally(() => setGenerating(false));
                   }}
                   className="mt-3 rounded-md border border-border px-4 py-2 text-xs uppercase tracking-widest"
