@@ -47,6 +47,7 @@ export function JobDetailView({ jobId }: JobDetailViewProps) {
   const [stageList, setStageList] = useState<string[]>([]);
   const [profileComplete, setProfileComplete] = useState(false);
   const [revision, setRevision] = useState("");
+  const [announcementRevision, setAnnouncementRevision] = useState("");
   const [generating, setGenerating] = useState(false);
 
   const loadJob = useCallback(async () => {
@@ -368,16 +369,50 @@ export function JobDetailView({ jobId }: JobDetailViewProps) {
                 setGenerating(true);
                 void generateAnnouncement(jobId, { action: "generate" })
                   .then((result) => setJob(result.job))
+                  .catch((err: unknown) =>
+                    setError(err instanceof Error ? err.message : "Generation failed"),
+                  )
                   .finally(() => setGenerating(false));
               }}
               className="mt-4 rounded-md bg-primary px-4 py-2 text-xs uppercase tracking-widest text-primary-foreground disabled:opacity-50"
             >
-              Generate announcement
+              {profileComplete ? "Generate announcement" : "Complete profile first"}
             </button>
             {job.announcement ? (
-              <pre className="mt-4 whitespace-pre-wrap text-sm text-foreground">
-                {job.announcement}
-              </pre>
+              <>
+                <pre className="mt-4 whitespace-pre-wrap text-sm text-foreground">
+                  {job.announcement}
+                </pre>
+                <textarea
+                  className={cn(inputClassName, "mt-4")}
+                  rows={2}
+                  value={announcementRevision}
+                  onChange={(event) => setAnnouncementRevision(event.target.value)}
+                  placeholder='Revision instruction, e.g. "make it shorter"'
+                />
+                <button
+                  type="button"
+                  disabled={!announcementRevision.trim() || generating}
+                  onClick={() => {
+                    setGenerating(true);
+                    void generateAnnouncement(jobId, {
+                      action: "revise",
+                      instruction: announcementRevision,
+                    })
+                      .then((result) => {
+                        setJob(result.job);
+                        setAnnouncementRevision("");
+                      })
+                      .catch((err: unknown) =>
+                        setError(err instanceof Error ? err.message : "Revision failed"),
+                      )
+                      .finally(() => setGenerating(false));
+                  }}
+                  className="mt-3 rounded-md border border-border px-4 py-2 text-xs uppercase tracking-widest"
+                >
+                  Revise draft
+                </button>
+              </>
             ) : null}
           </section>
         ) : null}
