@@ -11,6 +11,7 @@ import {
   setCachedAccount,
 } from "./account-cache";
 import { authGetCurrentUser, authHeaders } from "./auth";
+import { fetchWithTimeout } from "./fetch-with-timeout";
 
 async function parseJson<T>(response: Response): Promise<T> {
   const data = (await response.json()) as T & { error?: string };
@@ -25,7 +26,7 @@ export async function fetchAccount(): Promise<UserAccount | null> {
 
   let response: Response;
   try {
-    response = await fetch("/api/account", {
+    response = await fetchWithTimeout("/api/account", {
       headers: await authHeaders(),
     });
   } catch {

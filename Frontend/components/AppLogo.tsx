@@ -5,6 +5,9 @@ import { useTheme } from "@/components/ThemeProvider";
 import { APP_NAME } from "@/lib/app";
 import { cn } from "@/lib/utils";
 
+const LOGO_WIDTH = 29;
+const LOGO_HEIGHT = 31;
+
 interface AppLogoProps {
   href?: string | null;
   height?: number;
@@ -20,7 +23,7 @@ export function AppLogo({
 }: AppLogoProps) {
   const { theme } = useTheme();
   const src = theme === "dark" ? "/logo-light.svg" : "/logo-dark.svg";
-  const width = Math.round((height / 46) * 54);
+  const width = Math.round((height / LOGO_HEIGHT) * LOGO_WIDTH);
 
   const content = (
     <div className={cn("flex items-center gap-3", className)}>

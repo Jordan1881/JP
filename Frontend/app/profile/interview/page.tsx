@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { AgentChatMessage } from "@jp/shared-types";
 import { fetchProfile, profileInterviewStep } from "@/lib/profile-api";
+import { AppLogo } from "@/components/AppLogo";
 import { AuthButton, AuthCard, AuthError, AuthField, authInputClassName } from "@/components/AuthCard";
 
 export default function ProfileInterviewPage() {
@@ -71,7 +72,14 @@ export default function ProfileInterviewPage() {
       <div className="max-h-72 space-y-3 overflow-y-auto rounded-md border border-border bg-secondary/20 p-4 text-sm">
         {messages.map((message, index) => (
           <p key={index} className={message.role === "assistant" ? "text-foreground" : "text-muted-foreground"}>
-            <strong>{message.role === "assistant" ? "JP" : "You"}:</strong> {message.content}
+            {message.role === "assistant" ? (
+              <span className="mb-1 inline-flex items-center gap-2 align-middle">
+                <AppLogo href={null} height={14} />
+              </span>
+            ) : (
+              <strong>You: </strong>
+            )}
+            {message.content}
           </p>
         ))}
         {!lastAssistant && !submitting ? (
