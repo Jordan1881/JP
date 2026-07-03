@@ -8,6 +8,22 @@ on:
 jobs:
   quality:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: jp
+          POSTGRES_PASSWORD: jp
+          POSTGRES_DB: jp
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U jp"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgres://jp:jp@localhost:5432/jp
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -20,6 +36,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm lint
       - run: pnpm typecheck
+      - name: Apply database migrations
+        run: pnpm --filter @jp/backend db:migrate
       - run: pnpm test
 
   deploy-backend:

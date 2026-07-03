@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 import { ensureLoggedIn } from "./helpers/auth";
 
 const email = process.env.E2E_EMAIL!;

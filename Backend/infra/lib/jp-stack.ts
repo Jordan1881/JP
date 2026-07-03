@@ -34,7 +34,7 @@ export class JpStack extends cdk.Stack {
         version: rds.AuroraPostgresEngineVersion.VER_15_4,
       }),
       writer: rds.ClusterInstance.serverlessV2("writer"),
-      serverlessV2MinCapacity: 0.5,
+      serverlessV2MinCapacity: 0,
       serverlessV2MaxCapacity: 2,
       vpc,
       vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
