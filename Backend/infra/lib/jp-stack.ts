@@ -106,15 +106,12 @@ export class JpStack extends cdk.Stack {
     });
 
     const integration = new apigateway.LambdaIntegration(apiHandler);
-    api.root.addResource("health").addMethod("GET", integration);
-
-    const jobs = api.root.addResource("jobs");
-    jobs.addMethod("GET", integration);
-    jobs.addMethod("POST", integration);
-    const jobById = jobs.addResource("{id}");
-    jobById.addMethod("GET", integration);
-    jobById.addMethod("PATCH", integration);
-    jobById.addMethod("DELETE", integration);
+    // Monolithic ApiHandler (ADR-0003) routes all paths internally; proxy+ avoids
+    // per-route CDK drift when handlers/api.ts gains new endpoints.
+    api.root.addProxy({
+      defaultIntegration: integration,
+      anyMethod: true,
+    });
 
     new events.Rule(this, "DailySweepRule", {
       schedule: events.Schedule.cron({ minute: "0", hour: "6" }),
