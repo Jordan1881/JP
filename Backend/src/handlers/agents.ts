@@ -6,8 +6,8 @@ import {
   CoverLetterAgent,
   JobAnnouncementAgent,
 } from "../modules/generation-agents/index.js";
-import { getDevJobRepository } from "../modules/job-repository/factory.js";
-import { getDevProfileRepository } from "../modules/profile-repository/index.js";
+import { getJobRepository } from "../services/store-provider.js";
+import { getProfileRepository } from "../services/store-provider.js";
 
 const JSON_HEADERS = { "Content-Type": "application/json" };
 
@@ -21,7 +21,7 @@ function jobIdFromPath(path: string): string | null {
 }
 
 async function requireCompleteProfile(userId: string) {
-  const repository = getDevProfileRepository();
+  const repository = (await getProfileRepository());
   const profile = await repository.get(userId);
   if (!repository.isComplete(profile) || !profile) {
     throw new Error("Complete your profile interview before generating content");
@@ -39,7 +39,7 @@ export async function coverLetterHandler(
 
   try {
     const userId = getUserId(event);
-    const job = await getDevJobRepository().getById(userId, jobId);
+    const job = await (await getJobRepository()).getById(userId, jobId);
     if (!job) {
       return response(404, { error: "Job not found" });
     }
@@ -58,7 +58,7 @@ export async function coverLetterHandler(
         ? await agent.revise(job.coverLetter, body.instruction, body.messages ?? [])
         : await agent.generate(job, profile);
 
-    const updated = await getDevJobRepository().patch(userId, jobId, {
+    const updated = await (await getJobRepository()).patch(userId, jobId, {
       coverLetter: draft,
     });
     return response(200, { job: updated.job, draft });
@@ -79,7 +79,7 @@ export async function announcementHandler(
 
   try {
     const userId = getUserId(event);
-    const job = await getDevJobRepository().getById(userId, jobId);
+    const job = await (await getJobRepository()).getById(userId, jobId);
     if (!job) {
       return response(404, { error: "Job not found" });
     }
@@ -101,7 +101,7 @@ export async function announcementHandler(
         ? await agent.revise(job.announcement, body.instruction, body.messages ?? [])
         : await agent.generate(job, profile);
 
-    const updated = await getDevJobRepository().patch(userId, jobId, {
+    const updated = await (await getJobRepository()).patch(userId, jobId, {
       announcement: draft,
     });
     return response(200, { job: updated.job, draft });

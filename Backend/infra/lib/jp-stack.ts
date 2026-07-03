@@ -62,6 +62,7 @@ export class JpStack extends cdk.Stack {
         DATABASE_HOST: cluster.clusterEndpoint.hostname,
         DATABASE_PORT: cluster.clusterEndpoint.port.toString(),
         DATABASE_NAME: "jp",
+        DB_SECRET_ARN: cluster.secret!.secretArn,
         ANTHROPIC_SECRET_ARN: anthropicSecret.secretArn,
       },
       bundling: {
@@ -82,6 +83,7 @@ export class JpStack extends cdk.Stack {
         DATABASE_HOST: cluster.clusterEndpoint.hostname,
         DATABASE_PORT: cluster.clusterEndpoint.port.toString(),
         DATABASE_NAME: "jp",
+        DB_SECRET_ARN: cluster.secret!.secretArn,
       },
       bundling: {
         minify: true,
@@ -92,6 +94,8 @@ export class JpStack extends cdk.Stack {
     });
 
     anthropicSecret.grantRead(apiHandler);
+    cluster.secret!.grantRead(apiHandler);
+    cluster.secret!.grantRead(sweepHandler);
     cluster.connections.allowDefaultPortFrom(apiHandler);
     cluster.connections.allowDefaultPortFrom(sweepHandler);
 

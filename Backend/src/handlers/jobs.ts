@@ -1,7 +1,7 @@
 import type { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
 import type { ListJobsQuery } from "@jp/shared-types";
 import { getUserId } from "./auth.js";
-import { getDevJobRepository } from "../modules/job-repository/factory.js";
+import { getJobRepository } from "../services/store-provider.js";
 
 const JSON_HEADERS = { "Content-Type": "application/json" };
 
@@ -32,7 +32,7 @@ export async function listJobsHandler(
   event: APIGatewayProxyEvent,
 ): Promise<APIGatewayProxyResult> {
   try {
-    const repository = getDevJobRepository();
+    const repository = (await getJobRepository());
     const jobs = await repository.list(getUserId(event), listQuery(event));
     return response(200, { jobs });
   } catch (error) {
@@ -50,7 +50,7 @@ export async function createJobHandler(
 
   try {
     const input = JSON.parse(event.body);
-    const repository = getDevJobRepository();
+    const repository = (await getJobRepository());
     const job = await repository.create(getUserId(event), input);
     return response(201, { job });
   } catch (error) {
@@ -71,7 +71,7 @@ export async function getJobHandler(
   }
 
   try {
-    const repository = getDevJobRepository();
+    const repository = (await getJobRepository());
     const job = await repository.getById(getUserId(event), jobId);
     if (!job) {
       return response(404, { error: "Job not found" });
@@ -96,7 +96,7 @@ export async function patchJobHandler(
 
   try {
     const input = JSON.parse(event.body);
-    const repository = getDevJobRepository();
+    const repository = (await getJobRepository());
     const result = await repository.patch(getUserId(event), jobId, input);
     return response(200, result);
   } catch (error) {
@@ -116,7 +116,7 @@ export async function deleteJobHandler(
   }
 
   try {
-    await getDevJobRepository().deletePermanent(getUserId(event), jobId);
+    await (await getJobRepository()).deletePermanent(getUserId(event), jobId);
     return response(200, { deleted: true });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to delete job";
@@ -134,7 +134,7 @@ export async function archiveJobHandler(
 
   try {
     const body = event.body ? JSON.parse(event.body) : {};
-    const repository = getDevJobRepository();
+    const repository = (await getJobRepository());
     const userId = getUserId(event);
     const job =
       body.reason === "no_response"
@@ -156,7 +156,7 @@ export async function restoreJobHandler(
   }
 
   try {
-    const job = await getDevJobRepository().restore(getUserId(event), jobId);
+    const job = await (await getJobRepository()).restore(getUserId(event), jobId);
     return response(200, { job });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to restore job";

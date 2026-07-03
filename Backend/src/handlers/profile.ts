@@ -3,7 +3,7 @@ import type { UpdateProfileInput } from "@jp/shared-types";
 import { getUserId } from "./auth.js";
 import { createClaudeClient } from "../modules/claude-api-client/index.js";
 import { ProfileInterviewAgent } from "../modules/profile-interview-agent/index.js";
-import { getDevProfileRepository } from "../modules/profile-repository/index.js";
+import { getProfileRepository } from "../services/store-provider.js";
 
 const JSON_HEADERS = { "Content-Type": "application/json" };
 
@@ -15,7 +15,7 @@ export async function getProfileHandler(
   event: APIGatewayProxyEvent,
 ): Promise<APIGatewayProxyResult> {
   try {
-    const profile = await getDevProfileRepository().get(getUserId(event));
+    const profile = await (await getProfileRepository()).get(getUserId(event));
     return response(200, { profile });
   } catch (error) {
     const message =
@@ -33,7 +33,7 @@ export async function updateProfileHandler(
 
   try {
     const input = JSON.parse(event.body) as UpdateProfileInput;
-    const profile = await getDevProfileRepository().update(
+    const profile = await (await getProfileRepository()).update(
       getUserId(event),
       input,
     );
@@ -54,7 +54,7 @@ export async function profileInterviewHandler(
 
   try {
     const userId = getUserId(event);
-    const repository = getDevProfileRepository();
+    const repository = (await getProfileRepository());
     const existing = await repository.get(userId);
     if (repository.isComplete(existing)) {
       return response(400, { error: "Profile interview already completed" });

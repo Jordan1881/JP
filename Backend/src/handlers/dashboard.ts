@@ -1,7 +1,7 @@
 import type { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
 import { getUserId } from "./auth.js";
 import { computeDashboardStats } from "../modules/dashboard-analytics/index.js";
-import { getDevJobRepository } from "../modules/job-repository/factory.js";
+import { getJobRepository } from "../services/store-provider.js";
 
 const JSON_HEADERS = { "Content-Type": "application/json" };
 
@@ -13,7 +13,7 @@ export async function getDashboardHandler(
   event: APIGatewayProxyEvent,
 ): Promise<APIGatewayProxyResult> {
   try {
-    const jobs = await getDevJobRepository().list(getUserId(event), {
+    const jobs = await (await getJobRepository()).list(getUserId(event), {
       status: "all",
     });
     const stats = computeDashboardStats(jobs);

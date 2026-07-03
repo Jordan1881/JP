@@ -19,6 +19,7 @@
     "db:migrate": "tsc -p tsconfig.json && node dist/db/migrate-cli.js"
   },
   "dependencies": {
+    "@aws-sdk/client-secrets-manager": "^3.1079.0",
     "@jp/shared-types": "workspace:*",
     "pg": "^8.16.3"
   },

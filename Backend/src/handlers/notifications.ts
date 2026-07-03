@@ -1,6 +1,6 @@
 import type { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
 import { getUserId } from "./auth.js";
-import { getDevNotificationCenter } from "../modules/notification-center/index.js";
+import { getNotificationCenter } from "../services/store-provider.js";
 
 const JSON_HEADERS = { "Content-Type": "application/json" };
 
@@ -13,7 +13,7 @@ export async function listNotificationsHandler(
 ): Promise<APIGatewayProxyResult> {
   try {
     const userId = getUserId(event);
-    const center = getDevNotificationCenter();
+    const center = (await getNotificationCenter());
     const [notifications, unreadCount] = await Promise.all([
       center.list(userId),
       center.unreadCount(userId),
@@ -36,7 +36,7 @@ export async function markNotificationReadHandler(
   }
 
   try {
-    const notification = await getDevNotificationCenter().markRead(
+    const notification = await (await getNotificationCenter()).markRead(
       getUserId(event),
       notificationId,
     );
@@ -52,7 +52,7 @@ export async function markAllNotificationsReadHandler(
   event: APIGatewayProxyEvent,
 ): Promise<APIGatewayProxyResult> {
   try {
-    await getDevNotificationCenter().markAllRead(getUserId(event));
+    await (await getNotificationCenter()).markAllRead(getUserId(event));
     return response(200, { ok: true });
   } catch (error) {
     const message =
