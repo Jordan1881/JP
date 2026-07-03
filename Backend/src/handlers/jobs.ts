@@ -1,6 +1,8 @@
 import type { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
 import type { ListJobsQuery } from "@jp/shared-types";
 import { getUserId } from "./auth.js";
+import { createClaudeClient } from "../modules/claude-api-client/index.js";
+import { JobImportAgent } from "../modules/job-import-agent/index.js";
 import { getJobRepository } from "../services/store-provider.js";
 
 const JSON_HEADERS = { "Content-Type": "application/json" };
@@ -38,6 +40,39 @@ export async function listJobsHandler(
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to list jobs";
     return response(500, { error: message });
+  }
+}
+
+export async function importJobFromUrlHandler(
+  event: APIGatewayProxyEvent,
+): Promise<APIGatewayProxyResult> {
+  if (!event.body) {
+    return response(400, { error: "Request body is required" });
+  }
+
+  try {
+    const body = JSON.parse(event.body) as { url?: string };
+    if (!body.url?.trim()) {
+      return response(400, { error: "Job URL is required" });
+    }
+
+    const agent = new JobImportAgent(createClaudeClient());
+    const fields = await agent.importFromUrl(body.url);
+    return response(200, { fields });
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Failed to import job from URL";
+    const statusCode =
+      message.includes("required") ||
+      message.includes("Invalid") ||
+      message.includes("Could not") ||
+      message.includes("Try filling") ||
+      message.includes("Timed out") ||
+      message.includes("too large") ||
+      message.includes("not look like")
+        ? 400
+        : 500;
+    return response(statusCode, { error: message });
   }
 }
 

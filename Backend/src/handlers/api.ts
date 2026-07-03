@@ -17,6 +17,7 @@ import {
   createJobHandler,
   deleteJobHandler,
   getJobHandler,
+  importJobFromUrlHandler,
   listJobsHandler,
   patchJobHandler,
   restoreJobHandler,
@@ -75,6 +76,8 @@ export async function handler(
       return listJobsHandler(event);
     case "POST /jobs":
       return createJobHandler(event);
+    case "POST /jobs/import-url":
+      return importJobFromUrlHandler(event);
     case "GET /account":
       return getAccountHandler(event);
     case "POST /account":

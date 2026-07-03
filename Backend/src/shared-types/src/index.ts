@@ -16,6 +16,8 @@ export {
   type StageHistory,
   type Job,
   type CreateJobInput,
+  type JobImportFromUrlInput,
+  type JobImportFromUrlResult,
   type UpdateJobInput,
   type PatchJobInput,
   type ListJobsQuery,

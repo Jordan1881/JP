@@ -3,9 +3,10 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import type { CreateJobInput } from "@jp/shared-types";
 import { gsap } from "@/lib/gsap";
-import { createJob } from "@/lib/jobs-api";
+import { createJob, importJobFromUrl } from "@/lib/jobs-api";
 import type { Job } from "@jp/shared-types";
 import { cn } from "@/lib/utils";
+import { TopLoadBar } from "@/components/TopLoadBar";
 
 const emptyForm: CreateJobInput = {
   title: "",
@@ -28,6 +29,7 @@ export function AddJobForm({ onJobAdded }: { onJobAdded?: (job: Job) => void }) 
   const [form, setForm] = useState(emptyForm);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [importing, setImporting] = useState(false);
   const [expanded, setExpanded] = useState(false);
 
   useEffect(() => {
@@ -40,6 +42,36 @@ export function AddJobForm({ onJobAdded }: { onJobAdded?: (job: Job) => void }) 
       { opacity: 1, y: 0, duration: 0.35, ease: "power2.out" },
     );
   }, [error]);
+
+  async function handleImportFromUrl() {
+    const url = form.url?.trim();
+    if (!url) {
+      setError("Paste a job URL first, then click Import.");
+      return;
+    }
+
+    setImporting(true);
+    setError(null);
+    try {
+      const fields = await importJobFromUrl(url);
+      setForm((current) => ({
+        ...current,
+        title: fields.title,
+        company: fields.company,
+        url: fields.url,
+        jobNumber: fields.jobNumber ?? current.jobNumber ?? "",
+        description: fields.description ?? current.description ?? "",
+        notes: fields.notes ?? current.notes ?? "",
+      }));
+      setExpanded(true);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to import from URL",
+      );
+    } finally {
+      setImporting(false);
+    }
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -83,7 +115,8 @@ export function AddJobForm({ onJobAdded }: { onJobAdded?: (job: Job) => void }) 
   }
 
   return (
-    <section className="overflow-hidden rounded-xl border border-border bg-card/80 backdrop-blur-sm">
+    <section className="relative overflow-hidden rounded-xl border border-border bg-card/80 backdrop-blur-sm">
+      <TopLoadBar active={importing} />
       <div className="flex items-start justify-between gap-4 border-b border-border px-6 py-5">
         <div>
           <h2 className="text-xl font-medium tracking-tight text-foreground">
@@ -103,6 +136,36 @@ export function AddJobForm({ onJobAdded }: { onJobAdded?: (job: Job) => void }) 
       </div>
 
       <form className="grid gap-4 p-6 md:grid-cols-2" onSubmit={handleSubmit}>
+        <div className="grid gap-1.5 md:col-span-2">
+          <span className="text-sm text-muted-foreground">Job URL</span>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <input
+              type="url"
+              placeholder="https://company.com/careers/role"
+              className={cn(inputClassName, "min-w-0 flex-1")}
+              value={form.url ?? ""}
+              onChange={(event) =>
+                setForm({ ...form, url: event.target.value })
+              }
+            />
+            <button
+              type="button"
+              disabled={importing || submitting}
+              onClick={() => void handleImportFromUrl()}
+              className={cn(
+                "shrink-0 rounded-md border border-border px-4 py-2.5 text-[11px] font-semibold tracking-widest text-foreground uppercase",
+                "transition-colors hover:border-white/20 hover:bg-secondary disabled:cursor-not-allowed disabled:opacity-50",
+              )}
+            >
+              {importing ? "Importing…" : "Import"}
+            </button>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Paste a posting link and import to prefill title, company, and
+            description. Review before adding.
+          </p>
+        </div>
+
         <label className="grid gap-1.5 md:col-span-1">
           Job title *
           <input
@@ -151,18 +214,6 @@ export function AddJobForm({ onJobAdded }: { onJobAdded?: (job: Job) => void }) 
               />
             </label>
             <label className="grid gap-1.5 md:col-span-2">
-              Job URL
-              <input
-                type="url"
-                placeholder="https://"
-                className={inputClassName}
-                value={form.url ?? ""}
-                onChange={(event) =>
-                  setForm({ ...form, url: event.target.value })
-                }
-              />
-            </label>
-            <label className="grid gap-1.5 md:col-span-2">
               Description
               <textarea
                 rows={3}
@@ -199,7 +250,7 @@ export function AddJobForm({ onJobAdded }: { onJobAdded?: (job: Job) => void }) 
           <button
             ref={buttonRef}
             type="submit"
-            disabled={submitting}
+            disabled={submitting || importing}
             className={cn(
               "rounded-md bg-primary px-6 py-3 text-xs font-semibold tracking-widest text-primary-foreground uppercase",
               "transition-colors hover:bg-white disabled:cursor-not-allowed disabled:opacity-50",

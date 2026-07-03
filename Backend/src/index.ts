@@ -56,6 +56,7 @@ export {
   CoverLetterAgent,
   JobAnnouncementAgent,
 } from "./modules/generation-agents/index.js";
+export { JobImportAgent } from "./modules/job-import-agent/index.js";
 export { runDailySweep } from "./services/sweep-service.js";
 export {
   getPool,
