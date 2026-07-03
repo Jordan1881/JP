@@ -1,9 +1,6 @@
 const NETWORK_MESSAGE = "Couldn't reach server — try again";
 
 export function isNetworkError(err: unknown): boolean {
-  if (typeof globalThis.navigator !== "undefined" && globalThis.navigator.onLine === false) {
-    return true;
-  }
   if (err instanceof TypeError) {
     return true;
   }
