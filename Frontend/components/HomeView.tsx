@@ -12,6 +12,10 @@ import { AppLogo } from "@/components/AppLogo";
 import { TopLoadBar } from "@/components/TopLoadBar";
 import { fetchJobs } from "@/lib/jobs-api";
 import { fetchPreferences } from "@/lib/preferences-api";
+import { fetchProfile } from "@/lib/profile-api";
+import { useAuth } from "@/components/AuthProvider";
+import { isAuthConfigured } from "@/lib/auth";
+import Link from "next/link";
 
 const FEATURES = [
   {
@@ -62,10 +66,12 @@ function scrollToSection(id: string) {
 
 export function HomeView() {
   const rootRef = useRef<HTMLDivElement>(null);
+  const { account } = useAuth();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [stageList, setStageList] = useState<string[]>([]);
   const [jobsLoading, setJobsLoading] = useState(true);
   const [jobsError, setJobsError] = useState<string | null>(null);
+  const [profileIncomplete, setProfileIncomplete] = useState(false);
 
   const loadJobs = useCallback(async () => {
     setJobsLoading(true);
@@ -99,6 +105,15 @@ export function HomeView() {
     void loadJobs();
   }, [loadJobs]);
 
+  useEffect(() => {
+    if (!account || !isAuthConfigured()) {
+      setProfileIncomplete(false);
+      return;
+    }
+    void fetchProfile()
+      .then((profile) => setProfileIncomplete(!profile?.interviewCompletedAt))
+      .catch(() => setProfileIncomplete(false));
+  }, [account]);
   useEffect(() => {
     registerGsapPlugins();
     const root = rootRef.current;
@@ -155,6 +170,19 @@ export function HomeView() {
       <TopLoadBar active={jobsLoading} />
       <div className="pointer-events-none fixed inset-0 grid-dots opacity-60" />
       <div className="pointer-events-none fixed inset-x-0 top-16 h-[480px] bg-gradient-to-b from-white/[0.03] to-transparent" />
+
+      {profileIncomplete ? (
+        <div
+          role="status"
+          className="border-b border-amber-500/30 bg-amber-500/10 px-6 py-3 text-center text-sm text-foreground"
+        >
+          Complete your{" "}
+          <Link href="/profile/interview" className="font-medium underline">
+            profile interview
+          </Link>{" "}
+          to unlock AI cover letters and announcements.
+        </div>
+      ) : null}
 
       <section className="relative overflow-hidden border-b border-border">
         <div className="mx-auto grid max-w-6xl gap-12 px-6 py-20 md:grid-cols-2 md:items-center md:py-28 lg:py-32">

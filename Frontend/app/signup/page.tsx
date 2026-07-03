@@ -16,9 +16,9 @@ import { createAccount, fetchAccount } from "@/lib/account-api";
 import {
   authConfirmSignUp,
   authFetchUserAttributes,
-  authGetCurrentUser,
   authSignIn,
   authSignUp,
+  formatCognitoError,
   isAuthConfigured,
 } from "@/lib/auth";
 
@@ -26,7 +26,7 @@ type SignupMode = "loading" | "new" | "complete";
 
 export default function SignupPage() {
   const router = useRouter();
-  const { refreshAccount } = useAuth();
+  const { loading: authLoading, userId, refreshAccount } = useAuth();
   const [mode, setMode] = useState<SignupMode>("loading");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -38,14 +38,17 @@ export default function SignupPage() {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
+    if (authLoading) {
+      return;
+    }
+
     if (!isAuthConfigured()) {
       setMode("new");
       return;
     }
 
     async function loadSession() {
-      const user = await authGetCurrentUser();
-      if (!user) {
+      if (!userId) {
         setMode("new");
         return;
       }
@@ -63,7 +66,7 @@ export default function SignupPage() {
     }
 
     void loadSession();
-  }, [router]);
+  }, [authLoading, router, userId]);
 
   if (!isAuthConfigured()) {
     return (
@@ -75,7 +78,7 @@ export default function SignupPage() {
     );
   }
 
-  if (mode === "loading") {
+  if (mode === "loading" || authLoading) {
     return (
       <AuthCard title="Loading…" subtitle="Checking your session.">
         <p className="text-sm text-muted-foreground">One moment.</p>
@@ -124,7 +127,7 @@ export default function SignupPage() {
       await refreshAccount();
       router.replace("/");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Signup failed");
+      setError(formatCognitoError(err));
     } finally {
       setSubmitting(false);
     }
