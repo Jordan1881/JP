@@ -11,4 +11,4 @@ Chosen: **(A) proxy**. Aurora runs in the VPC with no public endpoint (ADR-0002)
 - Amplify needs one env var (`JP_API_URL`); no VPC peering, no public database, no second pool.
 - The `localStorage` caches (`jobs-cache.ts`, `account-cache.ts`) are demoted to offline/network-failure fallbacks; server responses (including 404s and empty lists) are authoritative.
 - Every production request pays one extra hop (Amplify → API Gateway). Acceptable at launch traffic; revisit only if latency becomes measurable.
-- User identity still travels as `x-user-id` from the client. Verifying the Cognito JWT at API Gateway (authorizer) is the follow-up hardening step; the proxy forwards headers so no route changes will be needed.
+- **Cognito JWT authorizer** on API Gateway `{proxy+}` validates ID tokens before Lambda (see `docs/infra/cognito-authorizer.md`). `proxyToBackend()` forwards `Authorization`; `getUserId()` reads `requestContext.authorizer.claims.sub`. `GET /health` stays public.
