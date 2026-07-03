@@ -6,20 +6,22 @@ import { useRouter } from "next/navigation";
 import {
   AuthButton,
   AuthCard,
-  AuthError,
   AuthField,
   authInputClassName,
 } from "@/components/AuthCard";
+import { FormError } from "@/components/FormError";
+import { useToast } from "@/components/ToastProvider";
 import { useAuth } from "@/components/AuthProvider";
 import { updateAccount } from "@/lib/account-api";
+import { getErrorMessage } from "@/lib/feedback";
 
 export default function AccountPage() {
   const router = useRouter();
   const { account, refreshAccount } = useAuth();
+  const { showSuccess } = useToast();
   const [name, setName] = useState("");
   const [photoUrl, setPhotoUrl] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -32,14 +34,13 @@ export default function AccountPage() {
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     setError(null);
-    setSuccess(null);
     setSubmitting(true);
     try {
       await updateAccount({ name, photoUrl: photoUrl || undefined });
       await refreshAccount();
-      setSuccess("Account updated.");
+      showSuccess("Account updated.");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Update failed");
+      setError(getErrorMessage(err, "Update failed"));
     } finally {
       setSubmitting(false);
     }
@@ -75,10 +76,7 @@ export default function AccountPage() {
       }
     >
       <form onSubmit={handleSubmit} className="space-y-5">
-        <AuthError message={error} />
-        {success ? (
-          <p className="text-sm text-emerald-300">{success}</p>
-        ) : null}
+        <FormError message={error} onDismiss={() => setError(null)} />
         <AuthField label="Email">
           <input
             className={`${authInputClassName} opacity-60`}
