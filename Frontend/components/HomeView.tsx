@@ -15,6 +15,7 @@ import { useAuth } from "@/components/AuthProvider";
 import { authSignOut, isAuthConfigured } from "@/lib/auth";
 import { fetchJobs } from "@/lib/jobs-api";
 import { fetchPreferences } from "@/lib/preferences-api";
+import { fetchProfile } from "@/lib/profile-api";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -73,6 +74,7 @@ export function HomeView() {
   const [stageList, setStageList] = useState<string[]>([]);
   const [jobsLoading, setJobsLoading] = useState(true);
   const [jobsError, setJobsError] = useState<string | null>(null);
+  const [profileIncomplete, setProfileIncomplete] = useState(false);
 
   const loadJobs = useCallback(async () => {
     setJobsLoading(true);
@@ -105,6 +107,16 @@ export function HomeView() {
   useEffect(() => {
     void loadJobs();
   }, [loadJobs]);
+
+  useEffect(() => {
+    if (!account || !isAuthConfigured()) {
+      setProfileIncomplete(false);
+      return;
+    }
+    void fetchProfile()
+      .then((profile) => setProfileIncomplete(!profile?.interviewCompletedAt))
+      .catch(() => setProfileIncomplete(false));
+  }, [account]);
 
   async function handleSignOut() {
     await authSignOut();
@@ -224,6 +236,19 @@ export function HomeView() {
           </div>
         </div>
       </nav>
+
+      {profileIncomplete ? (
+        <div
+          role="status"
+          className="border-b border-amber-500/30 bg-amber-500/10 px-6 py-3 text-center text-sm text-foreground"
+        >
+          Complete your{" "}
+          <Link href="/profile/interview" className="font-medium underline">
+            profile interview
+          </Link>{" "}
+          to unlock AI cover letters and announcements.
+        </div>
+      ) : null}
 
       <section className="relative overflow-hidden border-b border-border">
         <div className="mx-auto grid max-w-6xl gap-12 px-6 py-20 md:grid-cols-2 md:items-center md:py-28 lg:py-32">

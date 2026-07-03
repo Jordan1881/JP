@@ -17,6 +17,39 @@ configureAmplify();
 
 export { isAuthConfigured };
 
+/** Map Cognito error names to user-facing messages. */
+export function formatCognitoError(error: unknown): string {
+  if (!(error instanceof Error)) {
+    return "Something went wrong. Please try again.";
+  }
+
+  const name = (error as Error & { name?: string }).name ?? "";
+  const message = error.message;
+
+  switch (name) {
+    case "NotAuthorizedException":
+      return "Incorrect email or password.";
+    case "UserNotConfirmedException":
+      return "Please confirm your email before signing in.";
+    case "UsernameExistsException":
+      return "An account with this email already exists. Sign in instead.";
+    case "InvalidPasswordException":
+      return "Password does not meet requirements (8+ chars, upper, lower, number).";
+    case "CodeMismatchException":
+      return "Invalid verification code. Try again.";
+    case "ExpiredCodeException":
+      return "Verification code expired. Request a new one.";
+    case "LimitExceededException":
+    case "TooManyRequestsException":
+      return "Too many attempts. Wait a moment and try again.";
+    default:
+      if (/user.*already.*exist/i.test(message)) {
+        return "An account with this email already exists. Sign in instead.";
+      }
+      return message || "Something went wrong. Please try again.";
+  }
+}
+
 /** Cognito rejects signUp/signIn when a session already exists. */
 async function ensureSignedOut() {
   try {
