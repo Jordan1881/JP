@@ -1,47 +1,84 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
 import { cn } from "@/lib/utils";
 
 type ToastVariant = "success" | "error";
-interface Toast { id: string; message: string; variant: ToastVariant; }
-interface ToastContextValue { showSuccess: (message: string) => void; showError: (message: string) => void; }
+
+interface Toast {
+  id: number;
+  message: string;
+  variant: ToastVariant;
+}
+
+interface ToastContextValue {
+  showSuccess: (message: string) => void;
+  showError: (message: string) => void;
+}
 
 const ToastContext = createContext<ToastContextValue | null>(null);
-const AUTO_DISMISS_MS = 5000;
 
-function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: (id: string) => void }) {
-  useEffect(() => {
-    if (toast.variant !== "success") return;
-    const timer = window.setTimeout(() => onDismiss(toast.id), AUTO_DISMISS_MS);
-    return () => window.clearTimeout(timer);
-  }, [onDismiss, toast.id, toast.variant]);
-
-  return (
-    <div role="status" aria-live={toast.variant === "error" ? "assertive" : "polite"} className={cn(
-      "pointer-events-auto flex max-w-sm items-start gap-3 rounded-md border px-4 py-3 text-sm shadow-lg backdrop-blur-sm",
-      toast.variant === "success" ? "border-emerald-500/30 bg-emerald-500/15 text-emerald-100" : "border-red-500/30 bg-red-500/15 text-red-100",
-    )}>
-      <p className="min-w-0 flex-1">{toast.message}</p>
-      <button type="button" onClick={() => onDismiss(toast.id)} aria-label="Dismiss notification" className="shrink-0 opacity-70 transition-opacity hover:opacity-100">×</button>
-    </div>
-  );
-}
+let nextToastId = 0;
 
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
-  const nextId = useRef(0);
-  const dismiss = useCallback((id: string) => setToasts((c) => c.filter((t) => t.id !== id)), []);
-  const push = useCallback((message: string, variant: ToastVariant) => {
-    const id = `toast-${nextId.current++}`;
-    setToasts((c) => [...c, { id, message, variant }]);
+
+  const dismiss = useCallback((id: number) => {
+    setToasts((current) => current.filter((toast) => toast.id !== id));
   }, []);
-  const value = useMemo(() => ({ showSuccess: (m: string) => push(m, "success"), showError: (m: string) => push(m, "error") }), [push]);
+
+  const addToast = useCallback(
+    (message: string, variant: ToastVariant) => {
+      const id = ++nextToastId;
+      setToasts((current) => [...current, { id, message, variant }]);
+      window.setTimeout(() => dismiss(id), 4000);
+    },
+    [dismiss],
+  );
+
+  const showSuccess = useCallback(
+    (message: string) => addToast(message, "success"),
+    [addToast],
+  );
+
+  const showError = useCallback(
+    (message: string) => addToast(message, "error"),
+    [addToast],
+  );
+
+  const value = useMemo(
+    () => ({ showSuccess, showError }),
+    [showSuccess, showError],
+  );
+
   return (
     <ToastContext.Provider value={value}>
       {children}
-      <div aria-live="polite" className="pointer-events-none fixed right-4 bottom-4 z-[100] flex flex-col gap-2">
-        {toasts.map((toast) => <ToastItem key={toast.id} toast={toast} onDismiss={dismiss} />)}
+      <div
+        className="pointer-events-none fixed bottom-4 right-4 z-[100] flex flex-col gap-2"
+        aria-live="polite"
+      >
+        {toasts.map((toast) => (
+          <div
+            key={toast.id}
+            role="status"
+            className={cn(
+              "pointer-events-auto rounded-md border px-4 py-3 text-sm shadow-lg backdrop-blur-sm",
+              toast.variant === "success"
+                ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-200"
+                : "border-red-500/30 bg-red-500/10 text-red-200",
+            )}
+          >
+            {toast.message}
+          </div>
+        ))}
       </div>
     </ToastContext.Provider>
   );
@@ -49,6 +86,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 
 export function useToast(): ToastContextValue {
   const context = useContext(ToastContext);
-  if (!context) throw new Error("useToast must be used within ToastProvider");
+  if (!context) {
+    throw new Error("useToast must be used within ToastProvider");
+  }
   return context;
 }

@@ -6,19 +6,19 @@ import { useRouter } from "next/navigation";
 import {
   AuthButton,
   AuthCard,
-AuthField,
+  AuthField,
   authInputClassName,
 } from "@/components/AuthCard";
 import { FormError } from "@/components/FormError";
 import { useToast } from "@/components/ToastProvider";
-import { getErrorMessage } from "@/lib/feedback";
 import { useAuth } from "@/components/AuthProvider";
 import { updateAccount } from "@/lib/account-api";
+import { getErrorMessage } from "@/lib/feedback";
 
 export default function AccountPage() {
-  const { showSuccess, showError } = useToast();
   const router = useRouter();
   const { account, refreshAccount } = useAuth();
+  const { showSuccess } = useToast();
   const [name, setName] = useState("");
   const [photoUrl, setPhotoUrl] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -40,7 +40,7 @@ export default function AccountPage() {
       await refreshAccount();
       showSuccess("Account updated.");
     } catch (err) {
-      (() => { const message = getErrorMessage(err, "Update failed"); setError(message); showError(message); })();
+      setError(getErrorMessage(err, "Update failed"));
     } finally {
       setSubmitting(false);
     }

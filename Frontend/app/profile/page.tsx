@@ -3,14 +3,14 @@
 import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 import type { CareerProfile } from "@jp/shared-types";
+import { AuthButton, AuthCard, AuthField, authInputClassName } from "@/components/AuthCard";
 import { FormError } from "@/components/FormError";
 import { useToast } from "@/components/ToastProvider";
 import { getErrorMessage } from "@/lib/feedback";
 import { fetchProfile, updateProfile } from "@/lib/profile-api";
-import { authInputClassName, AuthButton, AuthCard, AuthField } from "@/components/AuthCard";
 
 export default function ProfilePage() {
-  const { showSuccess, showError } = useToast();
+  const { showSuccess } = useToast();
   const [profile, setProfile] = useState<CareerProfile | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -38,7 +38,7 @@ export default function ProfilePage() {
       setProfile(updated);
       showSuccess("Profile updated.");
     } catch (err) {
-      (() => { const message = getErrorMessage(err, "Update failed"); setError(message); showError(message); })();
+      setError(getErrorMessage(err, "Update failed"));
     }
   }
 

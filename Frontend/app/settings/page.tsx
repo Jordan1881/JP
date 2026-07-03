@@ -6,15 +6,15 @@ import { useRouter } from "next/navigation";
 import {
   AuthButton,
   AuthCard,
-AuthField,
+  AuthField,
   authInputClassName,
 } from "@/components/AuthCard";
 import { FormError } from "@/components/FormError";
 import { StageListEditor } from "@/components/StageListEditor";
-import { useToast } from "@/components/ToastProvider";
-import { getErrorMessage } from "@/lib/feedback";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { useToast } from "@/components/ToastProvider";
 import { deleteAccount } from "@/lib/account-api";
+import { getErrorMessage } from "@/lib/feedback";
 import { fetchPreferences, updatePreferences } from "@/lib/preferences-api";
 import {
   authDeleteUser,
@@ -24,7 +24,7 @@ import {
 
 export default function SettingsPage() {
   const router = useRouter();
-  const { showSuccess, showError } = useToast();
+  const { showSuccess } = useToast();
   const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmDelete, setConfirmDelete] = useState("");
@@ -55,7 +55,7 @@ export default function SettingsPage() {
       });
       showSuccess("Preferences saved.");
     } catch (err) {
-      (() => { const message = getErrorMessage(err, "Failed to save preferences"); setError(message); showError(message); })();
+      setError(getErrorMessage(err, "Failed to save preferences"));
     } finally {
       setSubmitting(false);
     }
@@ -71,7 +71,7 @@ export default function SettingsPage() {
       setNewPassword("");
       showSuccess("Password updated.");
     } catch (err) {
-      (() => { const message = getErrorMessage(err, "Password update failed"); setError(message); showError(message); })();
+      setError(getErrorMessage(err, "Password update failed"));
     } finally {
       setSubmitting(false);
     }
@@ -90,7 +90,7 @@ export default function SettingsPage() {
       await authSignOut();
       router.replace("/login");
     } catch (err) {
-      (() => { const message = getErrorMessage(err, "Account deletion failed"); setError(message); showError(message); })();
+      setError(getErrorMessage(err, "Account deletion failed"));
     } finally {
       setSubmitting(false);
     }
