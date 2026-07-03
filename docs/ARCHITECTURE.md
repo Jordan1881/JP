@@ -13,7 +13,7 @@
 
 - **Language**: TypeScript throughout (frontend and backend share one language)
 - **API layer**: AWS Lambda + API Gateway (or Lambda function URLs) — serverless, pay-per-use, no server management, scales to zero when idle.
-- **Database**: RDS or Aurora Serverless v2 (Postgres) — chosen over DynamoDB because the core data access patterns (keyword search, filter by stage, sort by last-updated, dashboard aggregation) are relational/SQL-shaped, not simple key-based lookups.
+- **Database**: Aurora Serverless v2 (Postgres 15.4) — chosen over DynamoDB because the core data access patterns (keyword search, filter by stage, sort by last-updated, dashboard aggregation) are relational/SQL-shaped, not simple key-based lookups. Runs in the VPC at 0–2 ACU (min 0 enables auto-pause, eliminating the idle-capacity floor at the cost of ~15s cold-resume), reached directly from VPC-attached Lambdas with no RDS Proxy — see `docs/adr/0002-aurora-serverless-v2-no-rds-proxy.md` for the rationale.
 - **Auth**: AWS Cognito — handles signup/login/password reset, integrates with the Terms-of-Use acceptance gate at signup.
 - **File/static storage**: S3 — not needed for v1 (no file uploads in scope); reserved for future resume-upload (deferred to v1.1+).
 - **Scheduled jobs**: EventBridge Scheduler → Lambda, for the daily Staleness Scheduler sweep (14-day stale check, repeating notifications) and the 30-day archive-deletion sweep (including the day-25 pre-deletion warning).

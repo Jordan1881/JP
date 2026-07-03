@@ -52,6 +52,12 @@ export {
   JobAnnouncementAgent,
 } from "./modules/generation-agents/index.js";
 export { runDailySweep } from "./services/sweep-service.js";
+export { resolveDatabaseConfig } from "./db/config.js";
+export type { DatabaseConfig } from "./db/config.js";
+export { createPool, getSharedPool } from "./db/pool.js";
+export { runMigrations } from "./db/migrate.js";
+export type { Migration, MigrationResult } from "./db/migrate.js";
+export { migrations } from "./db/migrations/index.js";
 
 export const LOCAL_DEV_USER_ID = "local-dev-user";
 
