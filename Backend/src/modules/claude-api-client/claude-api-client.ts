@@ -57,9 +57,64 @@ export class AnthropicClaudeClient implements ClaudeClient {
   }
 }
 
+let cachedAnthropicApiKey: string | undefined;
+
+async function fetchAnthropicApiKey(secretArn: string): Promise<string> {
+  const { SecretsManagerClient, GetSecretValueCommand } = await import(
+    "@aws-sdk/client-secrets-manager"
+  );
+  const client = new SecretsManagerClient({});
+  const result = await client.send(
+    new GetSecretValueCommand({ SecretId: secretArn }),
+  );
+  if (!result.SecretString) {
+    throw new Error("Anthropic secret has no string value");
+  }
+  let secret: { ANTHROPIC_API_KEY?: string };
+  try {
+    secret = JSON.parse(result.SecretString) as { ANTHROPIC_API_KEY?: string };
+  } catch {
+    throw new Error("Anthropic secret is not valid JSON");
+  }
+  const apiKey = secret.ANTHROPIC_API_KEY?.trim();
+  if (!apiKey) {
+    throw new Error("Anthropic secret is missing ANTHROPIC_API_KEY");
+  }
+  return apiKey;
+}
+
+async function resolveAnthropicApiKey(secretArn: string): Promise<string> {
+  cachedAnthropicApiKey ??= await fetchAnthropicApiKey(secretArn);
+  return cachedAnthropicApiKey;
+}
+
+class SecretBackedClaudeClient implements ClaudeClient {
+  private clientPromise: Promise<AnthropicClaudeClient> | null = null;
+
+  constructor(private readonly secretArn: string) {}
+
+  async complete(input: ClaudeCompletionInput): Promise<string> {
+    this.clientPromise ??= resolveAnthropicApiKey(this.secretArn).then(
+      (apiKey) => new AnthropicClaudeClient(apiKey),
+    );
+    return (await this.clientPromise).complete(input);
+  }
+}
+
 export function createClaudeClient(apiKey = process.env.ANTHROPIC_API_KEY): ClaudeClient {
   if (apiKey?.trim()) {
     return new AnthropicClaudeClient(apiKey.trim());
   }
+
+  const secretArn = process.env.ANTHROPIC_SECRET_ARN?.trim();
+  if (secretArn) {
+    return new SecretBackedClaudeClient(secretArn);
+  }
+
   return new MockClaudeClient();
+}
+
+/** @internal Test helper — resets per-container secret cache. */
+export function resetAnthropicSecretCacheForTests(): void {
+  cachedAnthropicApiKey = undefined;
 }

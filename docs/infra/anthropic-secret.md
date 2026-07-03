@@ -15,3 +15,5 @@ aws secretsmanager put-secret-value \
 ```
 
 Lambda execution roles are granted `secretsmanager:GetSecretValue` on this secret.
+
+At runtime, `createClaudeClient()` reads `ANTHROPIC_API_KEY` from the secret when the env var is unset but `ANTHROPIC_SECRET_ARN` is set (lazy, cached per Lambda container). Fetch or parse failures throw — production does not fall back to the mock client.
