@@ -1,4 +1,5 @@
 import {
+  buildStageFilterOptions,
   getDisplayStages,
   resolvePipelineStages,
   TERMINAL_STAGES,
@@ -6,7 +7,7 @@ import {
   type TerminalStage,
 } from "@jp/shared-types";
 
-export { getDisplayStages, resolvePipelineStages };
+export { buildStageFilterOptions, getDisplayStages, resolvePipelineStages };
 
 export interface TerminalStageEvent {
   jobId: string;

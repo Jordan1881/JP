@@ -6,6 +6,7 @@ export {
 } from "./defaults.js";
 export {
   applyStageChange,
+  buildStageFilterOptions,
   getDisplayStages,
   resolvePipelineStages,
   type StageChangeResult,

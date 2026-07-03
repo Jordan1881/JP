@@ -30,8 +30,7 @@ export class ProfileInterviewAgent {
     const nextTopic = PROFILE_TOPICS[completedTopics.length];
     const system = `You are JP's one-time profile interview agent. Ask one concise question about: ${nextTopic}. Do not repeat completed topics: ${completedTopics.join(", ") || "none"}.`;
 
-    return this.client.complete({
-      model: "claude-sonnet-4-20250514",
+    return this.client.complete("interview", {
       system,
       messages:
         messages.length > 0

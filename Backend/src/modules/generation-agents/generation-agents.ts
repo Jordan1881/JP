@@ -20,8 +20,7 @@ export class CoverLetterAgent {
   ) {}
 
   async generate(job: Job, profile: CareerProfile): Promise<string> {
-    return this.client.complete({
-      model: "claude-sonnet-4-20250514",
+    return this.client.complete("generation", {
       system:
         "Write a tailored cover letter draft for the candidate. Keep it professional and specific to the job.",
       messages: [
@@ -38,8 +37,7 @@ export class CoverLetterAgent {
     instruction: string,
     messages: AgentChatMessage[] = [],
   ): Promise<string> {
-    return this.client.complete({
-      model: "claude-sonnet-4-20250514",
+    return this.client.complete("generation", {
       system:
         "Revise the cover letter draft according to the user's instruction. Return only the updated letter.",
       messages: [
@@ -57,8 +55,7 @@ export class JobAnnouncementAgent {
   ) {}
 
   async generate(job: Job, profile: CareerProfile): Promise<string> {
-    return this.client.complete({
-      model: "claude-sonnet-4-20250514",
+    return this.client.complete("generation", {
       system:
         "Write a short social post announcing the candidate accepted a new job. Draft only, friendly tone.",
       messages: [
@@ -75,8 +72,7 @@ export class JobAnnouncementAgent {
     instruction: string,
     messages: AgentChatMessage[] = [],
   ): Promise<string> {
-    return this.client.complete({
-      model: "claude-sonnet-4-20250514",
+    return this.client.complete("generation", {
       system:
         "Revise the announcement draft according to the user's instruction. Return only the updated draft.",
       messages: [
