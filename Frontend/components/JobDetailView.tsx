@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import type { Job } from "@jp/shared-types";
-import { TERMINAL_STAGES } from "@jp/shared-types";
 import { getDisplayStages } from "@jp/shared-types";
 import {
   archiveJob,
@@ -16,6 +15,7 @@ import {
 import { fetchPreferences } from "@/lib/preferences-api";
 import { fetchProfile } from "@/lib/profile-api";
 import { cn } from "@/lib/utils";
+import { ConfirmModal } from "@/components/ConfirmModal";
 
 interface JobDetailViewProps {
   jobId: string;
@@ -49,6 +49,8 @@ export function JobDetailView({ jobId }: JobDetailViewProps) {
   const [revision, setRevision] = useState("");
   const [announcementRevision, setAnnouncementRevision] = useState("");
   const [generating, setGenerating] = useState(false);
+  const [historyExpanded, setHistoryExpanded] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<"archive" | "delete" | null>(null);
 
   const loadJob = useCallback(async () => {
     setLoading(true);
@@ -182,74 +184,115 @@ export function JobDetailView({ jobId }: JobDetailViewProps) {
           <h2 className="text-sm font-semibold tracking-widest text-muted-foreground uppercase">
             Pipeline
           </h2>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Jump to any stage — order is flexible.
-          </p>
-          <div className="mt-5 flex flex-wrap gap-2">
-            {stages.map((stage) => {
+          <div className="mt-5 flex items-center gap-1 overflow-x-auto pb-2">
+            {stages.map((stage, index) => {
               const isCurrent = stage === job.currentStage;
-              const isTerminal = (TERMINAL_STAGES as readonly string[]).includes(
-                stage,
-              );
+              const currentIndex = stages.indexOf(job.currentStage);
+              const isPast = index < currentIndex;
               const isChanging = changingStage === stage;
 
               return (
-                <button
-                  key={stage}
-                  type="button"
-                  disabled={Boolean(changingStage)}
-                  onClick={() => void handleStageChange(stage)}
-                  className={cn(
-                    "rounded-full border px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-50",
-                    isCurrent
-                      ? "border-foreground bg-foreground text-background"
-                      : "border-border bg-secondary text-foreground hover:border-white/20",
-                    isTerminal && !isCurrent && "border-white/15 text-foreground/90",
-                  )}
-                >
-                  {isChanging ? "…" : stage}
-                </button>
+                <div key={stage} className="flex shrink-0 items-center">
+                  <button
+                    type="button"
+                    disabled={Boolean(changingStage)}
+                    onClick={() => void handleStageChange(stage)}
+                    className={cn(
+                      "flex min-w-[4.5rem] flex-col items-center gap-1.5 px-2 py-1 transition-colors disabled:opacity-50",
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        "flex h-8 w-8 items-center justify-center rounded-full border text-xs font-semibold",
+                        isCurrent
+                          ? "border-foreground bg-foreground text-background"
+                          : isPast
+                            ? "border-emerald-500/50 bg-emerald-500/20 text-foreground"
+                            : "border-border bg-secondary text-muted-foreground",
+                      )}
+                    >
+                      {isChanging ? "…" : index + 1}
+                    </span>
+                    <span
+                      className={cn(
+                        "max-w-[5rem] truncate text-center text-[10px] leading-tight",
+                        isCurrent ? "font-medium text-foreground" : "text-muted-foreground",
+                      )}
+                    >
+                      {stage}
+                    </span>
+                  </button>
+                  {index < stages.length - 1 ? (
+                    <div
+                      className={cn(
+                        "mx-0.5 h-0.5 w-4 shrink-0 rounded",
+                        index < currentIndex ? "bg-emerald-500/50" : "bg-border",
+                      )}
+                    />
+                  ) : null}
+                </div>
               );
             })}
           </div>
         </section>
 
         <section className="mt-10 rounded-xl border border-border bg-card/80 p-6">
-          <h2 className="text-sm font-semibold tracking-widest text-muted-foreground uppercase">
-            Stage history
-          </h2>
-          {historyEntries.length === 0 ? (
-            <p className="mt-3 text-sm text-muted-foreground">No history yet.</p>
-          ) : (
-            <ul className="mt-4 space-y-3">
-              {historyEntries.map(([stage, timestamp]) => (
-                <li
-                  key={stage}
-                  className="flex items-center justify-between gap-4 text-sm"
-                >
-                  <span
-                    className={cn(
-                      "font-medium",
-                      stage === job.currentStage
-                        ? "text-foreground"
-                        : "text-muted-foreground",
-                    )}
+          <button
+            type="button"
+            onClick={() => setHistoryExpanded((value) => !value)}
+            className="flex w-full items-center justify-between text-left"
+          >
+            <h2 className="text-sm font-semibold tracking-widest text-muted-foreground uppercase">
+              Stage history
+              {historyEntries.length > 0 ? (
+                <span className="ml-2 font-normal normal-case text-muted-foreground">
+                  ({historyEntries.length})
+                </span>
+              ) : null}
+            </h2>
+            <span className="text-xs text-muted-foreground">
+              {historyExpanded ? "Hide" : "Show"}
+            </span>
+          </button>
+          {historyExpanded ? (
+            historyEntries.length === 0 ? (
+              <p className="mt-3 text-sm text-muted-foreground">No history yet.</p>
+            ) : (
+              <ul className="mt-4 space-y-3">
+                {historyEntries.map(([stage, timestamp]) => (
+                  <li
+                    key={stage}
+                    className="flex items-center justify-between gap-4 text-sm"
                   >
-                    {stage}
-                  </span>
-                  <span className="text-muted-foreground">
-                    {formatDateTime(timestamp)}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
+                    <span
+                      className={cn(
+                        "font-medium",
+                        stage === job.currentStage
+                          ? "text-foreground"
+                          : "text-muted-foreground",
+                      )}
+                    >
+                      {stage}
+                    </span>
+                    <span className="text-muted-foreground">
+                      {formatDateTime(timestamp)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )
+          ) : null}
         </section>
 
         <section className="mt-10 rounded-xl border border-border bg-card/80 p-6">
-          <h2 className="text-sm font-semibold tracking-widest text-muted-foreground uppercase">
-            Notes
-          </h2>
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="text-sm font-semibold tracking-widest text-muted-foreground uppercase">
+              Notes
+            </h2>
+            {notes !== (job.notes ?? "") ? (
+              <span className="text-xs text-amber-200/90">Unsaved changes</span>
+            ) : null}
+          </div>
           <textarea
             rows={5}
             className={cn(inputClassName, "mt-4 resize-y")}
@@ -271,30 +314,14 @@ export function JobDetailView({ jobId }: JobDetailViewProps) {
           <section className="mt-10 flex flex-wrap gap-3">
             <button
               type="button"
-              onClick={() => {
-                if (
-                  confirm(
-                    "Archive this job? Manual archives are permanently deleted after 30 days.",
-                  )
-                ) {
-                  void archiveJob(jobId).then(() => {
-                    window.location.href = "/archive";
-                  });
-                }
-              }}
+              onClick={() => setConfirmAction("archive")}
               className="rounded-md border border-border px-4 py-2 text-xs uppercase tracking-widest"
             >
               Archive job
             </button>
             <button
               type="button"
-              onClick={() => {
-                if (confirm("Permanently delete this job?")) {
-                  void deleteJob(jobId).then(() => {
-                    window.location.href = "/";
-                  });
-                }
-              }}
+              onClick={() => setConfirmAction("delete")}
               className="rounded-md border border-red-500/40 px-4 py-2 text-xs uppercase tracking-widest text-red-200"
             >
               Delete permanently
@@ -320,11 +347,20 @@ export function JobDetailView({ jobId }: JobDetailViewProps) {
             }}
             className="mt-4 rounded-md bg-primary px-4 py-2 text-xs uppercase tracking-widest text-primary-foreground disabled:opacity-50"
           >
-            {profileComplete ? "Generate cover letter" : "Complete profile first"}
+            {profileComplete ? (generating ? "Generating…" : "Generate cover letter") : "Complete profile first"}
           </button>
           {job.coverLetter ? (
             <>
-              <pre className="mt-4 whitespace-pre-wrap text-sm text-foreground">
+              <div className="mt-4 flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => void navigator.clipboard.writeText(job.coverLetter ?? "")}
+                  className="text-xs text-muted-foreground underline hover:text-foreground"
+                >
+                  Copy to clipboard
+                </button>
+              </div>
+              <pre className="mt-2 whitespace-pre-wrap text-sm text-foreground">
                 {job.coverLetter}
               </pre>
               <textarea
@@ -358,7 +394,7 @@ export function JobDetailView({ jobId }: JobDetailViewProps) {
         </section>
 
         {job.currentStage === "Accepted" ? (
-          <section className="mt-10 rounded-xl border border-border bg-card/80 p-6">
+          <section className="mt-10 rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-6">
             <h2 className="text-sm font-semibold tracking-widest text-muted-foreground uppercase">
               Job announcement
             </h2>
@@ -376,11 +412,20 @@ export function JobDetailView({ jobId }: JobDetailViewProps) {
               }}
               className="mt-4 rounded-md bg-primary px-4 py-2 text-xs uppercase tracking-widest text-primary-foreground disabled:opacity-50"
             >
-              {profileComplete ? "Generate announcement" : "Complete profile first"}
+              {profileComplete ? (generating ? "Generating…" : "Generate announcement") : "Complete profile first"}
             </button>
             {job.announcement ? (
               <>
-                <pre className="mt-4 whitespace-pre-wrap text-sm text-foreground">
+                <div className="mt-4 flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => void navigator.clipboard.writeText(job.announcement ?? "")}
+                    className="text-xs text-muted-foreground underline hover:text-foreground"
+                  >
+                    Copy to clipboard
+                  </button>
+                </div>
+                <pre className="mt-2 whitespace-pre-wrap text-sm text-foreground">
                   {job.announcement}
                 </pre>
                 <textarea
@@ -416,6 +461,34 @@ export function JobDetailView({ jobId }: JobDetailViewProps) {
             ) : null}
           </section>
         ) : null}
+
+        <ConfirmModal
+          open={confirmAction === "archive"}
+          title="Archive this job?"
+          message="Manual archives are permanently deleted after 30 days."
+          confirmLabel="Archive"
+          onCancel={() => setConfirmAction(null)}
+          onConfirm={() => {
+            setConfirmAction(null);
+            void archiveJob(jobId).then(() => {
+              window.location.href = "/archive";
+            });
+          }}
+        />
+        <ConfirmModal
+          open={confirmAction === "delete"}
+          title="Delete permanently?"
+          message="This cannot be undone."
+          confirmLabel="Delete"
+          destructive
+          onCancel={() => setConfirmAction(null)}
+          onConfirm={() => {
+            setConfirmAction(null);
+            void deleteJob(jobId).then(() => {
+              window.location.href = "/";
+            });
+          }}
+        />
       </div>
     </div>
   );
