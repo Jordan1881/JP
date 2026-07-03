@@ -7,4 +7,6 @@ export {
   type ClaudeAgentTier,
   type ClaudeClient,
   type ClaudeCompletionInput,
+  MockClaudeClient,
+  type MockClaudeResponder,
 } from "./claude-api-client.js";
