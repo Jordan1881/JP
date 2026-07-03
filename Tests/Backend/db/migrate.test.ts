@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type pg from "pg";
 import { createPool } from "@backend/db/pool.js";
-import { resolveDatabaseConfig } from "@backend/db/config.js";
+import { resolveDatabaseConfig, type DatabaseConfig } from "@backend/db/config.js";
 import { runMigrations } from "@backend/db/migrate.js";
 import { migrations } from "@backend/db/migrations/index.js";
 
@@ -17,8 +17,20 @@ const EXPECTED_TABLES = [
   "notifications",
 ];
 
-// Integration test — requires a real Postgres (set DATABASE_URL). CI provides
-// a postgres service; locally: docker run --rm -e POSTGRES_PASSWORD=jp -p 5432:5432 postgres:15
+/** Fresh-database assertions run in a scratch DB so they can't race the other
+ * integration tests, which share the configured database. */
+const SCRATCH_DB = "jp_migrate_test";
+
+function scratchConfig(config: DatabaseConfig): DatabaseConfig {
+  if (config.connectionString) {
+    const url = new URL(config.connectionString);
+    url.pathname = `/${SCRATCH_DB}`;
+    return { ...config, connectionString: url.toString() };
+  }
+  return { ...config, database: SCRATCH_DB };
+}
+
+// Integration test — requires a real Postgres (see docs/infra/database.md).
 describe.skipIf(!databaseConfigured)("database migrations", () => {
   let pool: pg.Pool;
 
@@ -27,13 +39,12 @@ describe.skipIf(!databaseConfigured)("database migrations", () => {
     if (!config) {
       throw new Error("Database config missing despite env gate");
     }
-    pool = createPool(config);
-    await pool.query(`
-      DROP TABLE IF EXISTS
-        schema_migrations, notifications, jobs,
-        user_accounts, career_profiles, user_preferences
-      CASCADE
-    `);
+    const adminPool = createPool(config);
+    await adminPool.query(`DROP DATABASE IF EXISTS ${SCRATCH_DB} WITH (FORCE)`);
+    await adminPool.query(`CREATE DATABASE ${SCRATCH_DB}`);
+    await adminPool.end();
+
+    pool = createPool(scratchConfig(config));
   });
 
   afterAll(async () => {
