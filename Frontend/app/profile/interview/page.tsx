@@ -4,7 +4,7 @@ import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { AgentChatMessage } from "@jp/shared-types";
-import { profileInterviewStep } from "@/lib/profile-api";
+import { fetchProfile, profileInterviewStep } from "@/lib/profile-api";
 import { AuthButton, AuthCard, AuthError, AuthField, authInputClassName } from "@/components/AuthCard";
 
 export default function ProfileInterviewPage() {
@@ -15,6 +15,14 @@ export default function ProfileInterviewPage() {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [started, setStarted] = useState(false);
+
+  useEffect(() => {
+    void fetchProfile().then((profile) => {
+      if (profile?.interviewCompletedAt) {
+        router.replace("/profile");
+      }
+    });
+  }, [router]);
 
   useEffect(() => {
     if (!started) {
@@ -57,7 +65,7 @@ export default function ProfileInterviewPage() {
     <AuthCard
       title="Profile interview"
       subtitle="One-time adaptive interview to bootstrap your career profile."
-      footer={<Link href="/profile" className="text-foreground underline">Skip to profile</Link>}
+      footer={<Link href="/" className="text-foreground underline">Home</Link>}
     >
       <AuthError message={error} />
       <div className="max-h-72 space-y-3 overflow-y-auto rounded-md border border-border bg-secondary/20 p-4 text-sm">
