@@ -3,6 +3,7 @@ import * as apigateway from "aws-cdk-lib/aws-apigateway";
 import * as iam from "aws-cdk-lib/aws-iam";
 import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as lambdaNodejs from "aws-cdk-lib/aws-lambda-nodejs";
+import * as secretsmanager from "aws-cdk-lib/aws-secretsmanager";
 import { Construct } from "constructs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
@@ -50,6 +51,16 @@ export class JpStack extends cdk.Stack {
       maxCapacity: 2,
     });
 
+    const anthropicSecret = new secretsmanager.Secret(this, "AnthropicApiKey", {
+      secretName: "jp/anthropic-api-key",
+      description: "Anthropic Claude API key for JP agents (Lambda)",
+      generateSecretString: {
+        secretStringTemplate: JSON.stringify({ ANTHROPIC_API_KEY: "" }),
+        generateStringKey: "ANTHROPIC_API_KEY",
+        excludePunctuation: true,
+      },
+    });
+
     const apiHandler = new lambdaNodejs.NodejsFunction(this, "ApiHandler", {
       entry: join(__dirname, "../../../src/handlers/api.ts"),
       handler: "handler",
@@ -62,6 +73,7 @@ export class JpStack extends cdk.Stack {
         DATABASE_NAME: "postgres",
         DATABASE_USER: "postgres",
         DATABASE_USE_IAM_AUTH: "true",
+        ANTHROPIC_SECRET_ARN: anthropicSecret.secretArn,
       },
       bundling: {
         minify: true,
@@ -79,6 +91,7 @@ export class JpStack extends cdk.Stack {
         ],
       }),
     );
+    anthropicSecret.grantRead(apiHandler);
 
     const api = new apigateway.RestApi(this, "JpApi", {
       restApiName: "JP Job Player API",
@@ -113,6 +126,11 @@ export class JpStack extends cdk.Stack {
       value:
         "Express cluster uses IAM auth (user: postgres). Generate tokens with @aws-sdk/rds-signer.",
       description: "Database connection note",
+    });
+
+    new cdk.CfnOutput(this, "AnthropicSecretArn", {
+      value: anthropicSecret.secretArn,
+      description: "Secrets Manager ARN — set ANTHROPIC_API_KEY value (see docs/infra/anthropic-secret.md)",
     });
 
     new cdk.CfnOutput(this, "CognitoUserPoolId", {

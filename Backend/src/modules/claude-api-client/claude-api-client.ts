@@ -4,8 +4,8 @@ export type ClaudeAgentTier = "interview" | "generation";
 
 /** Central model map — agents pass a tier, not a raw model id. */
 export const CLAUDE_MODELS: Record<ClaudeAgentTier, string> = {
-  interview: "claude-opus-4-20250514",
-  generation: "claude-sonnet-4-20250514",
+  interview: "claude-opus-4-8",
+  generation: "claude-sonnet-5",
 };
 
 export interface ClaudeCompletionInput {
