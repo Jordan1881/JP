@@ -3,10 +3,12 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import type { CreateJobInput } from "@jp/shared-types";
 import { gsap } from "@/lib/gsap";
-import { createJob, importJobFromUrl } from "@/lib/jobs-api";
+import { createJob, importJob } from "@/lib/jobs-api";
 import type { Job } from "@jp/shared-types";
 import { cn } from "@/lib/utils";
 import { TopLoadBar } from "@/components/TopLoadBar";
+
+type ImportMode = "url" | "text";
 
 const emptyForm: CreateJobInput = {
   title: "",
@@ -31,6 +33,8 @@ export function AddJobForm({ onJobAdded }: { onJobAdded?: (job: Job) => void }) 
   const [submitting, setSubmitting] = useState(false);
   const [importing, setImporting] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  const [importMode, setImportMode] = useState<ImportMode>("url");
+  const [pastedText, setPastedText] = useState("");
 
   useEffect(() => {
     if (!error) return;
@@ -43,31 +47,37 @@ export function AddJobForm({ onJobAdded }: { onJobAdded?: (job: Job) => void }) 
     );
   }, [error]);
 
-  async function handleImportFromUrl() {
+  async function handleImport() {
     const url = form.url?.trim();
-    if (!url) {
+    const text = pastedText.trim();
+
+    if (importMode === "url" && !url) {
       setError("Paste a job URL first, then click Import.");
+      return;
+    }
+    if (importMode === "text" && !text) {
+      setError("Paste the job description first, then click Import.");
       return;
     }
 
     setImporting(true);
     setError(null);
     try {
-      const fields = await importJobFromUrl(url);
+      const fields = await importJob(
+        importMode === "text" ? { text } : { url },
+      );
       setForm((current) => ({
         ...current,
         title: fields.title,
         company: fields.company,
-        url: fields.url,
+        url: fields.url ?? current.url ?? "",
         jobNumber: fields.jobNumber ?? current.jobNumber ?? "",
         description: fields.description ?? current.description ?? "",
         notes: fields.notes ?? current.notes ?? "",
       }));
       setExpanded(true);
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to import from URL",
-      );
+      setError(err instanceof Error ? err.message : "Failed to import");
     } finally {
       setImporting(false);
     }
@@ -136,33 +146,83 @@ export function AddJobForm({ onJobAdded }: { onJobAdded?: (job: Job) => void }) 
       </div>
 
       <form className="grid gap-4 p-6 md:grid-cols-2" onSubmit={handleSubmit}>
-        <div className="grid gap-1.5 md:col-span-2">
-          <span className="text-sm text-muted-foreground">Job URL</span>
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <input
-              type="url"
-              placeholder="https://company.com/careers/role"
-              className={cn(inputClassName, "min-w-0 flex-1")}
-              value={form.url ?? ""}
-              onChange={(event) =>
-                setForm({ ...form, url: event.target.value })
-              }
-            />
-            <button
-              type="button"
-              disabled={importing || submitting}
-              onClick={() => void handleImportFromUrl()}
-              className={cn(
-                "shrink-0 rounded-md border border-border px-4 py-2.5 text-[11px] font-semibold tracking-widest text-foreground uppercase",
-                "transition-colors hover:border-white/20 hover:bg-secondary disabled:cursor-not-allowed disabled:opacity-50",
-              )}
-            >
-              {importing ? "Importing…" : "Import"}
-            </button>
+        <div className="grid gap-2 rounded-lg border border-border bg-secondary/30 p-4 md:col-span-2">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-sm font-medium text-foreground">
+              Auto-fill from posting
+            </span>
+            <div className="flex overflow-hidden rounded-md border border-border">
+              {(["url", "text"] as const).map((mode) => (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => {
+                    setImportMode(mode);
+                    setError(null);
+                  }}
+                  className={cn(
+                    "px-3 py-1 text-[11px] font-semibold tracking-widest uppercase transition-colors",
+                    importMode === mode
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  {mode === "url" ? "URL" : "Paste text"}
+                </button>
+              ))}
+            </div>
           </div>
+
+          {importMode === "url" ? (
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <input
+                type="url"
+                placeholder="https://company.com/careers/role"
+                className={cn(inputClassName, "min-w-0 flex-1")}
+                value={form.url ?? ""}
+                onChange={(event) =>
+                  setForm({ ...form, url: event.target.value })
+                }
+              />
+              <button
+                type="button"
+                disabled={importing || submitting}
+                onClick={() => void handleImport()}
+                className={cn(
+                  "shrink-0 rounded-md border border-border px-4 py-2.5 text-[11px] font-semibold tracking-widest text-foreground uppercase",
+                  "transition-colors hover:border-white/20 hover:bg-secondary disabled:cursor-not-allowed disabled:opacity-50",
+                )}
+              >
+                {importing ? "Importing…" : "Import"}
+              </button>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-2">
+              <textarea
+                rows={4}
+                placeholder="Paste the full job description here…"
+                className={cn(inputClassName, "resize-y")}
+                value={pastedText}
+                onChange={(event) => setPastedText(event.target.value)}
+              />
+              <button
+                type="button"
+                disabled={importing || submitting}
+                onClick={() => void handleImport()}
+                className={cn(
+                  "self-start rounded-md border border-border px-4 py-2.5 text-[11px] font-semibold tracking-widest text-foreground uppercase",
+                  "transition-colors hover:border-white/20 hover:bg-secondary disabled:cursor-not-allowed disabled:opacity-50",
+                )}
+              >
+                {importing ? "Importing…" : "Import from text"}
+              </button>
+            </div>
+          )}
+
           <p className="text-xs text-muted-foreground">
-            Paste a posting link and import to prefill title, company, and
-            description. Review before adding.
+            {importMode === "url"
+              ? "Prefills title, company, and description. Some sites (LinkedIn, defense contractors) block this — use Paste text for those."
+              : "Works for any posting: copy the job description from your browser and paste it here."}
           </p>
         </div>
 
