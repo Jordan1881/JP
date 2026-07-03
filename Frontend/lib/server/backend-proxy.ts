@@ -18,7 +18,7 @@ export function isBackendConfigured(): boolean {
   return apiBaseUrl() !== null;
 }
 
-const FORWARDED_HEADERS = ["content-type", "x-user-id"];
+const FORWARDED_HEADERS = ["content-type", "x-user-id", "authorization"];
 
 export async function proxyToBackend(
   request: Request,

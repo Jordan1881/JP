@@ -177,6 +177,28 @@ export function parseStructuredOutput<T>(raw: string): T {
   }
 }
 
+
+
+export type MockClaudeResponder = (
+  tier: ClaudeAgentTier,
+  input: ClaudeCompletionInput,
+) => string | Promise<string>;
+
+/** Programmable Claude client for unit tests — no network calls. */
+export class MockClaudeClient implements ClaudeClient {
+  readonly calls: Array<{ tier: ClaudeAgentTier; input: ClaudeCompletionInput }> = [];
+
+  constructor(private readonly responder: MockClaudeResponder) {}
+
+  async complete(
+    tier: ClaudeAgentTier,
+    input: ClaudeCompletionInput,
+  ): Promise<string> {
+    this.calls.push({ tier, input });
+    return this.responder(tier, input);
+  }
+}
+
 /** @internal Test helper — resets per-container secret cache. */
 export function resetAnthropicSecretCacheForTests(): void {
   cachedAnthropicApiKey = undefined;

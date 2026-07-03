@@ -16,6 +16,9 @@ import { fetchPreferences } from "@/lib/preferences-api";
 import { fetchProfile } from "@/lib/profile-api";
 import { cn } from "@/lib/utils";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { FormError } from "@/components/FormError";
+import { useToast } from "@/components/ToastProvider";
+import { getErrorMessage } from "@/lib/feedback";
 
 interface JobDetailViewProps {
   jobId: string;
@@ -38,6 +41,7 @@ const inputClassName = cn(
 );
 
 export function JobDetailView({ jobId }: JobDetailViewProps) {
+  const { showSuccess } = useToast();
   const [job, setJob] = useState<Job | null>(null);
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(true);
@@ -67,7 +71,7 @@ export function JobDetailView({ jobId }: JobDetailViewProps) {
       setStageList(preferences.stageList);
       setProfileComplete(Boolean(profile?.interviewCompletedAt));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load job");
+      setError(getErrorMessage(err, "Failed to load job"));
     } finally {
       setLoading(false);
     }
@@ -107,8 +111,9 @@ export function JobDetailView({ jobId }: JobDetailViewProps) {
     try {
       const updated = await patchJob(jobId, { stage });
       setJob(updated);
+      showSuccess(`Stage updated to ${stage}.`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to update stage");
+      setError(getErrorMessage(err, "Failed to update stage"));
     } finally {
       setChangingStage(null);
     }
@@ -125,8 +130,9 @@ export function JobDetailView({ jobId }: JobDetailViewProps) {
       const updated = await patchJob(jobId, { notes });
       setJob(updated);
       setNotes(updated.notes ?? "");
+      showSuccess("Notes saved.");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save notes");
+      setError(getErrorMessage(err, "Failed to save notes"));
     } finally {
       setSavingNotes(false);
     }
@@ -164,9 +170,9 @@ export function JobDetailView({ jobId }: JobDetailViewProps) {
       : historyEntries.slice(0, 5);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div>
       <div className="pointer-events-none fixed inset-0 grid-dots opacity-60" />
-      <div className="relative mx-auto max-w-3xl px-6 py-10 md:py-14">
+      <div className="relative mx-auto max-w-3xl px-4 py-10 sm:px-6 md:py-14">
         <Link
           href="/#applications"
           className="text-xs font-medium tracking-widest text-muted-foreground uppercase transition-colors hover:text-foreground"
@@ -200,36 +206,9 @@ export function JobDetailView({ jobId }: JobDetailViewProps) {
           ) : null}
         </header>
 
-        {job.currentStage === "Accepted" && !job.announcement ? (
-          <div className="mt-6 rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-5">
-            <p className="text-sm font-medium text-emerald-100">Congratulations on your offer!</p>
-            <p className="mt-1 text-sm text-emerald-200/80">
-              Generate a professional announcement to share your news.
-            </p>
-            <button
-              type="button"
-              disabled={!profileComplete || generatingAnnouncement}
-              onClick={() => {
-                setGeneratingAnnouncement(true);
-                void generateAnnouncement(jobId, { action: "generate" })
-                  .then((result) => setJob(result.job))
-                  .catch((err: unknown) =>
-                    setError(err instanceof Error ? err.message : "Generation failed"),
-                  )
-                  .finally(() => setGeneratingAnnouncement(false));
-              }}
-              className="mt-4 rounded-md bg-primary px-4 py-2 text-xs font-semibold tracking-widest text-primary-foreground uppercase disabled:opacity-50"
-            >
-              {profileComplete ? (generatingAnnouncement ? "Generating…" : "Generate announcement") : "Complete profile first"}
-            </button>
-          </div>
-        ) : null}
-
-        {error ? (
-          <p className="mt-6 rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-200">
-            {error}
-          </p>
-        ) : null}
+        <div className="mt-6">
+          <FormError message={error} onDismiss={() => setError(null)} />
+        </div>
 
         <section className="mt-10">
           <h2 className="text-sm font-semibold tracking-widest text-muted-foreground uppercase">
@@ -405,9 +384,12 @@ export function JobDetailView({ jobId }: JobDetailViewProps) {
             onClick={() => {
               setGeneratingCoverLetter(true);
               void generateCoverLetter(jobId, { action: "generate" })
-                .then((result) => setJob(result.job))
+                .then((result) => {
+                  setJob(result.job);
+                  showSuccess("Cover letter generated.");
+                })
                 .catch((err: unknown) =>
-                  setError(err instanceof Error ? err.message : "Generation failed"),
+                  setError(getErrorMessage(err, "Generation failed")),
                 )
                 .finally(() => setGeneratingCoverLetter(false));
             }}
@@ -448,7 +430,11 @@ export function JobDetailView({ jobId }: JobDetailViewProps) {
                     .then((result) => {
                       setJob(result.job);
                       setRevision("");
+                      showSuccess("Cover letter revised.");
                     })
+                    .catch((err: unknown) =>
+                      setError(getErrorMessage(err, "Revision failed")),
+                    )
                     .finally(() => setGeneratingCoverLetter(false));
                 }}
                 className="mt-3 rounded-md border border-border px-4 py-2 text-xs uppercase tracking-widest"
@@ -470,9 +456,12 @@ export function JobDetailView({ jobId }: JobDetailViewProps) {
               onClick={() => {
                 setGeneratingAnnouncement(true);
                 void generateAnnouncement(jobId, { action: "generate" })
-                  .then((result) => setJob(result.job))
+                  .then((result) => {
+                    setJob(result.job);
+                    showSuccess("Announcement generated.");
+                  })
                   .catch((err: unknown) =>
-                    setError(err instanceof Error ? err.message : "Generation failed"),
+                    setError(getErrorMessage(err, "Generation failed")),
                   )
                   .finally(() => setGeneratingAnnouncement(false));
               }}
@@ -513,9 +502,10 @@ export function JobDetailView({ jobId }: JobDetailViewProps) {
                       .then((result) => {
                         setJob(result.job);
                         setAnnouncementRevision("");
+                        showSuccess("Announcement revised.");
                       })
                       .catch((err: unknown) =>
-                        setError(err instanceof Error ? err.message : "Revision failed"),
+                        setError(getErrorMessage(err, "Revision failed")),
                       )
                       .finally(() => setGeneratingAnnouncement(false));
                   }}

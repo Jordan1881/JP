@@ -6,6 +6,9 @@ import type {
 } from "@jp/shared-types";
 import { CURRENT_TERMS_VERSION as TERMS_VERSION } from "@jp/shared-types";
 import type { JobStore } from "../job-repository/types.js";
+import type { NotificationStore } from "../notification-center/notification-center.js";
+import type { ProfileStore } from "../profile-repository/profile-repository.js";
+import type { UserPreferencesStore } from "../user-preferences/user-preferences.js";
 import type { UserAccountStore } from "./types.js";
 
 function optionalTrim(value: string | undefined): string | undefined {
@@ -17,6 +20,9 @@ export class UserAccountRepository {
   constructor(
     private readonly store: UserAccountStore,
     private readonly jobStore?: JobStore,
+    private readonly profileStore?: ProfileStore,
+    private readonly preferencesStore?: UserPreferencesStore,
+    private readonly notificationStore?: NotificationStore,
   ) {}
 
   async get(userId: string): Promise<UserAccount | null> {
@@ -109,6 +115,15 @@ export class UserAccountRepository {
 
     if (this.jobStore?.deleteByUser) {
       await this.jobStore.deleteByUser(userId);
+    }
+    if (this.notificationStore?.deleteByUser) {
+      await this.notificationStore.deleteByUser(userId);
+    }
+    if (this.profileStore?.deleteByUser) {
+      await this.profileStore.deleteByUser(userId);
+    }
+    if (this.preferencesStore?.deleteByUser) {
+      await this.preferencesStore.deleteByUser(userId);
     }
 
     await this.store.delete(userId);

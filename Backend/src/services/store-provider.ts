@@ -124,20 +124,22 @@ export function getPool(): Promise<pg.Pool | null> {
 
 function buildPostgresStores(pool: pg.Pool): Stores {
   const jobStore = new PostgresJobStore(pool);
+  const profileStore = new PostgresProfileStore(pool);
+  const preferencesStore = new PostgresUserPreferencesStore(pool);
+  const notificationStore = new PostgresNotificationStore(pool);
   return {
     jobStore,
     jobRepository: new JobRepository(jobStore),
     userAccountRepository: new UserAccountRepository(
       new PostgresUserAccountStore(pool),
       jobStore,
+      profileStore,
+      preferencesStore,
+      notificationStore,
     ),
-    profileRepository: new ProfileRepository(new PostgresProfileStore(pool)),
-    userPreferencesRepository: new UserPreferencesRepository(
-      new PostgresUserPreferencesStore(pool),
-    ),
-    notificationCenter: new NotificationCenter(
-      new PostgresNotificationStore(pool),
-    ),
+    profileRepository: new ProfileRepository(profileStore),
+    userPreferencesRepository: new UserPreferencesRepository(preferencesStore),
+    notificationCenter: new NotificationCenter(notificationStore),
   };
 }
 

@@ -7,6 +7,9 @@ import { createJob, importJobFromUrl } from "@/lib/jobs-api";
 import type { Job } from "@jp/shared-types";
 import { cn } from "@/lib/utils";
 import { TopLoadBar } from "@/components/TopLoadBar";
+import { FormError } from "@/components/FormError";
+import { useToast } from "@/components/ToastProvider";
+import { getErrorMessage } from "@/lib/feedback";
 
 const emptyForm: CreateJobInput = {
   title: "",
@@ -25,6 +28,7 @@ const inputClassName = cn(
 );
 
 export function AddJobForm({ onJobAdded }: { onJobAdded?: (job: Job) => void }) {
+  const { showSuccess } = useToast();
   const buttonRef = useRef<HTMLButtonElement>(null);
   const [form, setForm] = useState(emptyForm);
   const [error, setError] = useState<string | null>(null);
@@ -64,10 +68,9 @@ export function AddJobForm({ onJobAdded }: { onJobAdded?: (job: Job) => void }) 
         notes: fields.notes ?? current.notes ?? "",
       }));
       setExpanded(true);
+      showSuccess("Imported job details from URL.");
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to import from URL",
-      );
+      setError(getErrorMessage(err, "Failed to import from URL"));
     } finally {
       setImporting(false);
     }
@@ -107,8 +110,9 @@ export function AddJobForm({ onJobAdded }: { onJobAdded?: (job: Job) => void }) 
 
       setForm({ ...emptyForm, submissionDate: form.submissionDate });
       onJobAdded?.(job);
+      showSuccess(`Added ${job.title} at ${job.company}.`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to add job");
+      setError(getErrorMessage(err, "Failed to add job"));
     } finally {
       setSubmitting(false);
     }
@@ -238,21 +242,18 @@ export function AddJobForm({ onJobAdded }: { onJobAdded?: (job: Job) => void }) 
           </>
         ) : null}
 
-        <div className="flex flex-wrap items-center gap-4 md:col-span-2">
-          {error ? (
-            <p
-              id="form-error"
-              className="text-sm font-normal text-destructive"
-            >
-              {error}
-            </p>
-          ) : null}
+        <div className="flex flex-col gap-4 md:col-span-2">
+          <FormError
+            id="form-error"
+            message={error}
+            onDismiss={() => setError(null)}
+          />
           <button
             ref={buttonRef}
             type="submit"
             disabled={submitting || importing}
             className={cn(
-              "rounded-md bg-primary px-6 py-3 text-xs font-semibold tracking-widest text-primary-foreground uppercase",
+              "w-fit rounded-md bg-primary px-6 py-3 text-xs font-semibold tracking-widest text-primary-foreground uppercase",
               "transition-colors hover:bg-white disabled:cursor-not-allowed disabled:opacity-50",
             )}
           >
