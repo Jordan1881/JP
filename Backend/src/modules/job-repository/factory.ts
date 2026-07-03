@@ -1,10 +1,11 @@
 import { JobRepository } from "./job-repository.js";
 import { InMemoryJobStore } from "./in-memory-store.js";
+import type { JobStore } from "./types.js";
 
 let devStore: InMemoryJobStore | null = null;
 
 export function createJobRepository(
-  store = new InMemoryJobStore(),
+  store: JobStore = new InMemoryJobStore(),
 ): JobRepository {
   return new JobRepository(store);
 }

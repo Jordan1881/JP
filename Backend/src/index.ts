@@ -1,6 +1,7 @@
 export {
   JobRepository,
   InMemoryJobStore,
+  PostgresJobStore,
   createJobRepository,
   getDevJobRepository,
   getDevJobStore,
