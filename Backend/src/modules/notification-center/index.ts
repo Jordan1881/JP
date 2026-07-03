@@ -20,3 +20,4 @@ export {
   type NotificationStore,
   type CreateNotificationInput,
 } from "./notification-center.js";
+export { PostgresNotificationStore } from "./postgres-store.js";

@@ -19,3 +19,4 @@ export {
   InMemoryProfileStore,
   type ProfileStore,
 } from "./profile-repository.js";
+export { PostgresProfileStore } from "./postgres-store.js";

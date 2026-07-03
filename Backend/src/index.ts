@@ -20,6 +20,7 @@ export type {
 export {
   UserAccountRepository,
   InMemoryUserAccountStore,
+  PostgresUserAccountStore,
   createUserAccountRepository,
   getDevUserAccountRepository,
 } from "./modules/user-account/index.js";
@@ -34,16 +35,19 @@ export {
 export {
   NotificationCenter,
   InMemoryNotificationStore,
+  PostgresNotificationStore,
   getDevNotificationCenter,
 } from "./modules/notification-center/index.js";
 export { runStalenessSweep } from "./modules/staleness-scheduler/index.js";
 export { computeDashboardStats } from "./modules/dashboard-analytics/index.js";
 export {
   UserPreferencesRepository,
+  PostgresUserPreferencesStore,
   getDevUserPreferencesRepository,
 } from "./modules/user-preferences/index.js";
 export {
   ProfileRepository,
+  PostgresProfileStore,
   getDevProfileRepository,
 } from "./modules/profile-repository/index.js";
 export { createClaudeClient } from "./modules/claude-api-client/index.js";
