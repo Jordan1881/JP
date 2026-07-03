@@ -13,19 +13,26 @@ export interface StalenessSweepResult {
   jobsToDelete: string[];
 }
 
+/**
+ * Story 17: remind again every 14 days after the user dismisses (reads) the
+ * notification. While a stale notification is unread it stays "open" in the
+ * bell — never duplicate it. Once read, the next reminder waits out the
+ * 14-day cadence from the last reminder.
+ */
 function hasOpenStaleNotification(
   notifications: AppNotification[],
   jobId: string,
   now: Date,
 ): boolean {
+  // Notifications arrive sorted newest-first; only the latest one matters.
   const existing = notifications.find(
     (item) => item.type === "stale_job" && item.jobId === jobId,
   );
   if (!existing) {
     return false;
   }
-  if (existing.read) {
-    return false;
+  if (!existing.read) {
+    return true;
   }
   const remindedAt = existing.lastRemindedAt ?? existing.createdAt;
   const days = Math.floor(

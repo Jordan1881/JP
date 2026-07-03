@@ -84,19 +84,34 @@ export class NotificationCenter {
     return this.store.insert(notification);
   }
 
-  async markRead(userId: string, notificationId: string): Promise<AppNotification> {
+  /**
+   * Dismissing a reminder starts the next 14-day cadence (story 17), so the
+   * read timestamp is recorded as lastRemindedAt for the staleness sweep.
+   */
+  async markRead(
+    userId: string,
+    notificationId: string,
+    now: string = new Date().toISOString(),
+  ): Promise<AppNotification> {
     const existing = await this.store.findById(notificationId, userId);
     if (!existing) {
       throw new Error("Notification not found");
     }
-    return this.store.update({ ...existing, read: true });
+    return this.store.update({ ...existing, read: true, lastRemindedAt: now });
   }
 
-  async markAllRead(userId: string): Promise<void> {
+  async markAllRead(
+    userId: string,
+    now: string = new Date().toISOString(),
+  ): Promise<void> {
     const notifications = await this.store.listByUser(userId);
     for (const notification of notifications) {
       if (!notification.read) {
-        await this.store.update({ ...notification, read: true });
+        await this.store.update({
+          ...notification,
+          read: true,
+          lastRemindedAt: now,
+        });
       }
     }
   }
