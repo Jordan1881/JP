@@ -1,5 +1,6 @@
 import * as cdk from "aws-cdk-lib";
 import * as apigateway from "aws-cdk-lib/aws-apigateway";
+import * as cognito from "aws-cdk-lib/aws-cognito";
 import * as iam from "aws-cdk-lib/aws-iam";
 import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as lambdaNodejs from "aws-cdk-lib/aws-lambda-nodejs";
@@ -12,6 +13,28 @@ import { JpCognito } from "./jp-cognito.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+
+/** Resolve an existing Cognito pool for the API authorizer (hybrid deploy). */
+function resolveAuthorizerUserPool(
+  scope: Construct,
+  defaultPool: cognito.IUserPool,
+): cognito.IUserPool {
+  const stack = cdk.Stack.of(scope);
+  const poolArn =
+    process.env.COGNITO_USER_POOL_ARN ??
+    stack.node.tryGetContext("cognitoUserPoolArn");
+  const poolId =
+    process.env.COGNITO_USER_POOL_ID ??
+    stack.node.tryGetContext("cognitoUserPoolId");
+
+  if (typeof poolArn === "string" && poolArn.length > 0) {
+    return cognito.UserPool.fromUserPoolArn(scope, "AuthorizerUserPool", poolArn);
+  }
+  if (typeof poolId === "string" && poolId.length > 0) {
+    return cognito.UserPool.fromUserPoolId(scope, "AuthorizerUserPool", poolId);
+  }
+  return defaultPool;
+}
 
 /** Amplify production + common local dev OAuth redirect URLs. */
 const COGNITO_CALLBACK_URLS = [
@@ -100,11 +123,29 @@ export class JpStack extends cdk.Stack {
     });
 
     const integration = new apigateway.LambdaIntegration(apiHandler);
+
+    const authorizerPool = resolveAuthorizerUserPool(this, auth.userPool);
+    const authorizer = new apigateway.CognitoUserPoolsAuthorizer(
+      this,
+      "CognitoAuthorizer",
+      {
+        cognitoUserPools: [authorizerPool],
+      },
+    );
+
+    api.root.addResource("health").addMethod("GET", integration, {
+      authorizationType: apigateway.AuthorizationType.NONE,
+    });
+
     // Monolithic ApiHandler routes all paths internally; proxy+ avoids per-route
     // CDK drift when handlers/api.ts gains new endpoints (ADR-0004).
     api.root.addProxy({
       defaultIntegration: integration,
       anyMethod: true,
+      defaultMethodOptions: {
+        authorizer,
+        authorizationType: apigateway.AuthorizationType.COGNITO,
+      },
     });
 
     new cdk.CfnOutput(this, "ApiUrl", {

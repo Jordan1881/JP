@@ -7,25 +7,26 @@ interface AuthCardProps {
   subtitle: string;
   children: ReactNode;
   footer?: ReactNode;
+  embedded?: boolean;
 }
 
-export function AuthCard({ title, subtitle, children, footer }: AuthCardProps) {
+export function AuthCard({ title, subtitle, children, footer, embedded = false }: AuthCardProps) {
+  const card = (
+    <div className="w-full max-w-md rounded-xl border border-border bg-card p-8 shadow-xl">
+      <div className="mb-8">
+        {embedded ? null : <AppLogo height={36} />}
+        <h1 className={embedded ? "text-2xl font-semibold tracking-tight text-foreground" : "mt-6 text-2xl font-semibold tracking-tight text-foreground"}>{title}</h1>
+        <p className="mt-2 text-sm text-muted-foreground">{subtitle}</p>
+      </div>
+      {children}
+      {footer ? <div className="mt-6 text-sm text-muted-foreground">{footer}</div> : null}
+    </div>
+  );
+  if (embedded) return <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6">{card}</div>;
   return (
     <div className="relative flex min-h-screen items-center justify-center bg-background px-6 py-16">
-      <div className="absolute top-6 right-6">
-        <ThemeIconButton />
-      </div>
-      <div className="w-full max-w-md rounded-xl border border-border bg-card p-8 shadow-xl">
-        <div className="mb-8">
-          <AppLogo height={36} />
-          <h1 className="mt-6 text-2xl font-semibold tracking-tight text-foreground">
-            {title}
-          </h1>
-          <p className="mt-2 text-sm text-muted-foreground">{subtitle}</p>
-        </div>
-        {children}
-        {footer ? <div className="mt-6 text-sm text-muted-foreground">{footer}</div> : null}
-      </div>
+      <div className="absolute top-6 right-6"><ThemeIconButton /></div>
+      {card}
     </div>
   );
 }

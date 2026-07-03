@@ -3,13 +3,16 @@
 import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 import type { CareerProfile } from "@jp/shared-types";
+import { AuthButton, AuthCard, AuthField, authInputClassName } from "@/components/AuthCard";
+import { FormError } from "@/components/FormError";
+import { useToast } from "@/components/ToastProvider";
+import { getErrorMessage } from "@/lib/feedback";
 import { fetchProfile, updateProfile } from "@/lib/profile-api";
-import { authInputClassName, AuthButton, AuthCard, AuthError, AuthField } from "@/components/AuthCard";
 
 export default function ProfilePage() {
+  const { showSuccess } = useToast();
   const [profile, setProfile] = useState<CareerProfile | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
 
   useEffect(() => {
     void fetchProfile().then(setProfile);
@@ -33,9 +36,9 @@ export default function ProfilePage() {
         careerNarrative: profile.careerNarrative,
       });
       setProfile(updated);
-      setSuccess("Profile updated.");
+      showSuccess("Profile updated.");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Update failed");
+      setError(getErrorMessage(err, "Update failed"));
     }
   }
 
@@ -63,8 +66,7 @@ export default function ProfilePage() {
       footer={<Link href="/" className="text-foreground underline">Home</Link>}
     >
       <form onSubmit={handleSubmit} className="space-y-4">
-        <AuthError message={error} />
-        {success ? <p className="text-sm text-emerald-300">{success}</p> : null}
+        <FormError message={error} onDismiss={() => setError(null)} />
         {[
           ["Seniority", "seniority"],
           ["Years of experience", "yearsOfExperience"],

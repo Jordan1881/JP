@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   CLAUDE_MODELS,
+  MockClaudeClient,
   createClaudeClient,
   parseStructuredOutput,
   resetAnthropicSecretCacheForTests,
@@ -104,11 +105,58 @@ describe("createClaudeClient", () => {
     fetchSpy.mockRestore();
   });
 
+  it("selects generation-tier model for generation calls", async () => {
+    const client = createClaudeClient("sk-ant-test");
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          content: [{ type: "text", text: "draft" }],
+        }),
+        { status: 200 },
+      ),
+    );
+
+    await client.complete("generation", {
+      system: "test",
+      messages: [{ role: "user", content: "hi" }],
+    });
+
+    const [, requestInit] = fetchSpy.mock.calls[0] as [string, RequestInit];
+    const body = JSON.parse(requestInit.body as string) as { model: string };
+    expect(body.model).toBe(CLAUDE_MODELS.generation);
+    fetchSpy.mockRestore();
+  });
+
   it("retries on transient 429 responses", async () => {
     const client = createClaudeClient("sk-ant-test");
     const fetchSpy = vi
       .spyOn(globalThis, "fetch")
       .mockResolvedValueOnce(new Response("rate limited", { status: 429 }))
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            content: [{ type: "text", text: "ok after retry" }],
+          }),
+          { status: 200 },
+        ),
+      );
+
+    await expect(
+      client.complete("generation", {
+        system: "test",
+        messages: [{ role: "user", content: "hi" }],
+      }),
+    ).resolves.toBe("ok after retry");
+
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
+    fetchSpy.mockRestore();
+  });
+
+  it("retries on transient 500 responses", async () => {
+    const client = createClaudeClient("sk-ant-test");
+    const fetchSpy = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(new Response("server error", { status: 503 }))
       .mockResolvedValueOnce(
         new Response(
           JSON.stringify({
@@ -159,6 +207,28 @@ describe("createClaudeClient", () => {
         messages: [{ role: "user", content: "hi" }],
       }),
     ).rejects.toThrow("missing ANTHROPIC_API_KEY");
+  });
+});
+
+
+
+describe("MockClaudeClient", () => {
+  it("returns programmed responses without network calls", async () => {
+    const client = new MockClaudeClient((tier, input) => {
+      expect(tier).toBe("generation");
+      expect(input.messages[0]?.content).toBe("hi");
+      return "mocked draft";
+    });
+
+    await expect(
+      client.complete("generation", {
+        system: "test",
+        messages: [{ role: "user", content: "hi" }],
+      }),
+    ).resolves.toBe("mocked draft");
+
+    expect(client.calls).toHaveLength(1);
+    expect(client.calls[0]?.tier).toBe("generation");
   });
 });
 

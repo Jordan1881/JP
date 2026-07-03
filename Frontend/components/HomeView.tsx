@@ -6,17 +6,16 @@ import { searchAndFilterJobs } from "@jp/shared-types";
 import { gsap, registerGsapPlugins } from "@/lib/gsap";
 import { AddJobForm } from "@/components/AddJobForm";
 import { ApplicationsTable } from "@/components/ApplicationsTable";
+import { ApplicationsTableSkeleton } from "@/components/ApplicationsTableSkeleton";
 import { HeroVisual } from "@/components/HeroVisual";
-import { NotificationBell } from "@/components/NotificationBell";
-import { NavUserMenu } from "@/components/NavUserMenu";
 import { AppLogo } from "@/components/AppLogo";
 import { TopLoadBar } from "@/components/TopLoadBar";
-import { useAuth } from "@/components/AuthProvider";
-import { authSignOut, isAuthConfigured } from "@/lib/auth";
 import { fetchJobs } from "@/lib/jobs-api";
 import { fetchPreferences } from "@/lib/preferences-api";
+import { fetchProfile } from "@/lib/profile-api";
+import { useAuth } from "@/components/AuthProvider";
+import { isAuthConfigured } from "@/lib/auth";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 
 const FEATURES = [
   {
@@ -67,12 +66,12 @@ function scrollToSection(id: string) {
 
 export function HomeView() {
   const rootRef = useRef<HTMLDivElement>(null);
-  const router = useRouter();
   const { account } = useAuth();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [stageList, setStageList] = useState<string[]>([]);
   const [jobsLoading, setJobsLoading] = useState(true);
   const [jobsError, setJobsError] = useState<string | null>(null);
+  const [profileIncomplete, setProfileIncomplete] = useState(false);
 
   const loadJobs = useCallback(async () => {
     setJobsLoading(true);
@@ -106,11 +105,15 @@ export function HomeView() {
     void loadJobs();
   }, [loadJobs]);
 
-  async function handleSignOut() {
-    await authSignOut();
-    router.push("/login");
-  }
-
+  useEffect(() => {
+    if (!account || !isAuthConfigured()) {
+      setProfileIncomplete(false);
+      return;
+    }
+    void fetchProfile()
+      .then((profile) => setProfileIncomplete(!profile?.interviewCompletedAt))
+      .catch(() => setProfileIncomplete(false));
+  }, [account]);
   useEffect(() => {
     registerGsapPlugins();
     const root = rootRef.current;
@@ -163,67 +166,23 @@ export function HomeView() {
   const companyCount = new Set(jobs.map((j) => j.company)).size;
 
   return (
-    <div ref={rootRef} className="min-h-screen bg-background">
+    <div ref={rootRef}>
       <TopLoadBar active={jobsLoading} />
       <div className="pointer-events-none fixed inset-0 grid-dots opacity-60" />
-      <div className="pointer-events-none fixed inset-x-0 top-0 h-[480px] bg-gradient-to-b from-white/[0.03] to-transparent" />
+      <div className="pointer-events-none fixed inset-x-0 top-16 h-[480px] bg-gradient-to-b from-white/[0.03] to-transparent" />
 
-      <nav
-        data-animate="nav"
-        className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-xl"
-      >
-        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
-          <AppLogo showWordmark height={36} />
-
-          <div className="hidden items-center gap-8 md:flex">
-            {[
-              { label: "Applications", id: "applications" },
-              { label: "Add job", id: "add-job" },
-            ].map((link) => (
-              <button
-                key={link.id}
-                type="button"
-                onClick={() => scrollToSection(link.id)}
-                className="text-sm font-normal text-muted-foreground transition-colors hover:text-foreground"
-              >
-                {link.label}
-              </button>
-            ))}
-            <Link href="/dashboard" className="text-sm text-muted-foreground hover:text-foreground">
-              Dashboard
-            </Link>
-            <Link href="/archive" className="text-sm text-muted-foreground hover:text-foreground">
-              Archive
-            </Link>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => scrollToSection("add-job")}
-              className="rounded-md bg-primary px-4 py-2 text-xs font-semibold tracking-widest text-primary-foreground uppercase transition-colors hover:bg-white"
-            >
-              Add application
-            </button>
-            {isAuthConfigured() ? (
-              <>
-                <NotificationBell />
-                <NavUserMenu
-                userName={account?.name}
-                onSignOut={() => void handleSignOut()}
-                />
-              </>
-            ) : (
-              <Link
-                href="/login"
-                className="text-sm text-muted-foreground transition-colors hover:text-foreground"
-              >
-                Sign in
-              </Link>
-            )}
-          </div>
+      {profileIncomplete ? (
+        <div
+          role="status"
+          className="border-b border-amber-500/30 bg-amber-500/10 px-6 py-3 text-center text-sm text-foreground"
+        >
+          Complete your{" "}
+          <Link href="/profile/interview" className="font-medium underline">
+            profile interview
+          </Link>{" "}
+          to unlock AI cover letters and announcements.
         </div>
-      </nav>
+      ) : null}
 
       <section className="relative overflow-hidden border-b border-border">
         <div className="mx-auto grid max-w-6xl gap-12 px-6 py-20 md:grid-cols-2 md:items-center md:py-28 lg:py-32">
@@ -320,9 +279,7 @@ export function HomeView() {
         </div>
         <div data-scroll-reveal id="applications">
           {jobsLoading ? (
-            <p className="text-sm font-normal text-muted-foreground">
-              Loading applications…
-            </p>
+            <ApplicationsTableSkeleton />
           ) : (
             <ApplicationsTable jobs={jobs} stageList={stageList} />
           )}

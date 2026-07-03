@@ -10,7 +10,7 @@ import {
   AuthField,
   authInputClassName,
 } from "@/components/AuthCard";
-import { authSignIn, isAuthConfigured } from "@/lib/auth";
+import { authSignIn, formatCognitoError, isAuthConfigured } from "@/lib/auth";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -37,7 +37,7 @@ export default function LoginPage() {
       await authSignIn(email, password);
       router.replace("/");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Login failed");
+      setError(formatCognitoError(err));
     } finally {
       setSubmitting(false);
     }

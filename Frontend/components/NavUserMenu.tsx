@@ -7,9 +7,10 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 interface NavUserMenuProps {
   userName?: string | null;
   onSignOut: () => void;
+  compact?: boolean;
 }
 
-export function NavUserMenu({ userName, onSignOut }: NavUserMenuProps) {
+export function NavUserMenu({ userName, onSignOut, compact = false }: NavUserMenuProps) {
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -71,31 +72,14 @@ export function NavUserMenu({ userName, onSignOut }: NavUserMenuProps) {
             </Link>
           </div>
           <div className="py-1">
-            <Link
-              href="/profile"
-              role="menuitem"
-              onClick={() => setOpen(false)}
-              className="block px-4 py-2.5 text-sm text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-            >
-              Profile
-            </Link>
-            <Link
-              href="/dashboard"
-              role="menuitem"
-              onClick={() => setOpen(false)}
-              className="block px-4 py-2.5 text-sm text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-            >
-              Dashboard
-            </Link>
-            <Link
-              href="/settings"
-              role="menuitem"
-              onClick={() => setOpen(false)}
-              className="block px-4 py-2.5 text-sm text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-            >
-              Settings
-            </Link>
-            <ThemeToggle />
+            {compact ? null : (
+              <>
+                <Link href="/profile" role="menuitem" onClick={() => setOpen(false)} className="block px-4 py-2.5 text-sm text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground">Profile</Link>
+                <Link href="/dashboard" role="menuitem" onClick={() => setOpen(false)} className="block px-4 py-2.5 text-sm text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground">Dashboard</Link>
+                <Link href="/settings" role="menuitem" onClick={() => setOpen(false)} className="block px-4 py-2.5 text-sm text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground">Settings</Link>
+              </>
+            )}
+            {compact ? null : <ThemeToggle />}
             <button
               type="button"
               role="menuitem"

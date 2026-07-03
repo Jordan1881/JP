@@ -4,6 +4,8 @@ import {
   needsTermsReacceptance,
 } from "@jp/shared-types";
 import { createJobRepository, InMemoryJobStore } from "@backend/modules/job-repository/index.js";
+import { InMemoryProfileStore } from "@backend/modules/profile-repository/index.js";
+import { InMemoryUserPreferencesStore } from "@backend/modules/user-preferences/index.js";
 import {
   createUserAccountRepository,
   InMemoryUserAccountStore,
@@ -73,11 +75,15 @@ describe("UserAccountRepository", () => {
     expect(accepted.termsVersion).toBe(CURRENT_TERMS_VERSION);
   });
 
-  it("deletes account and associated jobs", async () => {
+  it("deletes account, jobs, profile, and preferences", async () => {
     const jobStore = new InMemoryJobStore();
+    const profileStore = new InMemoryProfileStore();
+    const preferencesStore = new InMemoryUserPreferencesStore();
     const repository = createUserAccountRepository(
       new InMemoryUserAccountStore(),
       jobStore,
+      profileStore,
+      preferencesStore,
     );
     const jobs = createJobRepository(jobStore);
 
@@ -91,10 +97,32 @@ describe("UserAccountRepository", () => {
       company: "Acme",
       submissionDate: "2026-01-01",
     });
+    await profileStore.save({
+      userId: "user-1",
+      techStack: ["TypeScript"],
+      targetRoles: ["Backend"],
+      seniority: "Senior",
+      yearsOfExperience: 5,
+      locationPreference: "Remote",
+      remotePreference: "Remote",
+      salaryExpectations: "",
+      notableProjects: "",
+      softSkills: "",
+      careerNarrative: "",
+      interviewCompletedAt: new Date().toISOString(),
+    });
+    await preferencesStore.save({
+      userId: "user-1",
+      staleNotificationsEnabled: true,
+      preDeletionWarningsEnabled: true,
+      stageList: ["Applied"],
+    });
 
     await repository.delete("user-1");
 
     expect(await repository.get("user-1")).toBeNull();
     expect(await jobStore.listByUser("user-1")).toEqual([]);
+    expect(await profileStore.get("user-1")).toBeNull();
+    expect(await preferencesStore.get("user-1")).toBeNull();
   });
 });

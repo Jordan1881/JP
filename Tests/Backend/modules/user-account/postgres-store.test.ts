@@ -109,10 +109,15 @@ describe.skipIf(!databaseConfigured)("PostgresUserAccountStore", () => {
   });
 
   it("deletes the account and all user-owned rows", async () => {
-    const repository = createUserAccountRepository(store, jobStore);
-    const jobRepository = createJobRepository(jobStore);
     const profileStore = new PostgresProfileStore(pool);
     const preferencesStore = new PostgresUserPreferencesStore(pool);
+    const repository = createUserAccountRepository(
+      store,
+      jobStore,
+      profileStore,
+      preferencesStore,
+    );
+    const jobRepository = createJobRepository(jobStore);
     const notificationStore = new PostgresNotificationStore(pool);
 
     await repository.create(USER, {

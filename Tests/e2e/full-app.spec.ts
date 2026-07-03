@@ -91,13 +91,13 @@ test.describe("full app top-to-bottom", () => {
     await page.getByRole("button", { name: /notifications/i }).click();
     await expect(page.getByText("Notifications")).toBeVisible();
 
-    // Archive job from detail
+    // Archive job from detail (accessible confirm dialog, not window.confirm)
     await page.goto("/");
     await page.getByRole("link", { name: jobTitle }).click();
     const archiveBtn = page.getByRole("button", { name: /archive job/i });
     if (await archiveBtn.isVisible()) {
-      page.once("dialog", (dialog) => dialog.accept());
       await archiveBtn.click();
+      await page.getByRole("dialog").getByRole("button", { name: /^archive$/i }).click();
       await page.waitForURL(/\/archive/, { timeout: 15_000 });
       await expect(page.getByRole("link", { name: jobTitle })).toBeVisible({
         timeout: 15_000,

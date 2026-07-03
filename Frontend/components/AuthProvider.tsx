@@ -28,29 +28,37 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 const PUBLIC_PATHS = new Set(["/login", "/signup", "/terms"]);
+const AUTH_GATE_PATHS = new Set(["/login", "/signup", "/terms", "/accept-terms"]);
 
 function applyPostAuthRouting(
   pathname: string,
   router: ReturnType<typeof useRouter>,
   nextAccount: UserAccount | null,
+  hasSession: boolean,
 ) {
+  if (!hasSession) {
+    if (!PUBLIC_PATHS.has(pathname)) {
+      router.replace("/login");
+    }
+    return;
+  }
+
   if (pathname === "/signup" && nextAccount) {
     router.replace("/");
     return;
   }
 
-  if (!PUBLIC_PATHS.has(pathname)) {
-    if (!nextAccount && pathname !== "/signup") {
-      router.replace("/signup");
-      return;
-    }
-    if (
-      nextAccount &&
-      needsTermsReacceptance(nextAccount) &&
-      pathname !== "/accept-terms"
-    ) {
-      router.replace("/accept-terms");
-    }
+  if (!nextAccount && pathname !== "/signup") {
+    router.replace("/signup");
+    return;
+  }
+
+  if (
+    nextAccount &&
+    needsTermsReacceptance(nextAccount) &&
+    pathname !== "/accept-terms"
+  ) {
+    router.replace("/accept-terms");
   }
 }
 
@@ -75,6 +83,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let cancelled = false;
 
     async function load() {
+      setLoading(true);
       try {
         if (!isAuthConfigured()) {
           return;
@@ -88,9 +97,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (!user) {
           setUserId(null);
           setAccount(null);
-          if (!PUBLIC_PATHS.has(pathname)) {
-            router.replace("/login");
-          }
+          applyPostAuthRouting(pathname, router, null, false);
           return;
         }
 
@@ -100,13 +107,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setAccount(cached);
         }
 
-        const nextAccount = (await fetchAccount()) ?? cached;
+        const nextAccount = (await fetchAccount()) ?? cached ?? null;
         if (cancelled) {
           return;
         }
 
         setAccount(nextAccount);
-        applyPostAuthRouting(pathname, router, nextAccount);
+        applyPostAuthRouting(pathname, router, nextAccount, true);
       } finally {
         if (!cancelled) {
           setLoading(false);
@@ -125,7 +132,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [loading, userId, account, refreshAccount],
   );
 
-  const showAuthGate = loading && isAuthConfigured() && !PUBLIC_PATHS.has(pathname);
+  const showAuthGate =
+    loading && isAuthConfigured() && !AUTH_GATE_PATHS.has(pathname);
 
   if (showAuthGate) {
     return (
