@@ -3,6 +3,7 @@
 import {
   confirmSignUp,
   deleteUser,
+  fetchAuthSession,
   fetchUserAttributes,
   getCurrentUser,
   signIn,
@@ -119,9 +120,24 @@ export async function authDeleteUser() {
 }
 
 export async function authHeaders(): Promise<HeadersInit> {
-  const user = await authGetCurrentUser();
-  return {
+  const headers: Record<string, string> = {
     "Content-Type": "application/json",
-    ...(user?.userId ? { "x-user-id": user.userId } : {}),
   };
+
+  const user = await authGetCurrentUser();
+  if (user?.userId) {
+    headers["x-user-id"] = user.userId;
+  }
+
+  try {
+    const session = await fetchAuthSession();
+    const token = session.tokens?.idToken?.toString();
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+  } catch {
+    // No active session — x-user-id fallback for local dev only.
+  }
+
+  return headers;
 }

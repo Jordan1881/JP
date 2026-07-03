@@ -9,8 +9,11 @@ import {
   markNotificationRead,
 } from "@/lib/preferences-api";
 import { archiveJob } from "@/lib/jobs-api";
+import { useToast } from "@/components/ToastProvider";
+import { getErrorMessage } from "@/lib/feedback";
 
 export function NotificationBell() {
+  const { showSuccess, showError } = useToast();
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -38,10 +41,68 @@ export function NotificationBell() {
     }
   }, [open]);
 
+  async function handleMarkRead(notificationId: string) {
+    const previousNotifications = notifications;
+    const previousUnread = unreadCount;
+    const target = notifications.find((n) => n.id === notificationId);
+    if (!target || target.read) {
+      return;
+    }
+
+    setNotifications((current) =>
+      current.map((n) =>
+        n.id === notificationId ? { ...n, read: true } : n,
+      ),
+    );
+    setUnreadCount((count) => Math.max(0, count - 1));
+
+    try {
+      await markNotificationRead(notificationId);
+    } catch (err) {
+      setNotifications(previousNotifications);
+      setUnreadCount(previousUnread);
+      showError(getErrorMessage(err, "Failed to mark notification as read"));
+    }
+  }
+
+  async function handleMarkAllRead() {
+    const previousNotifications = notifications;
+    const previousUnread = unreadCount;
+
+    setNotifications((current) => current.map((n) => ({ ...n, read: true })));
+    setUnreadCount(0);
+
+    try {
+      await markAllNotificationsRead();
+      showSuccess("All notifications marked as read.");
+    } catch (err) {
+      setNotifications(previousNotifications);
+      setUnreadCount(previousUnread);
+      showError(getErrorMessage(err, "Failed to mark all as read"));
+    }
+  }
+
   async function handleArchive(jobId: string, notificationId: string) {
-    await archiveJob(jobId, "no_response");
-    await markNotificationRead(notificationId);
-    await load();
+    const previousNotifications = notifications;
+    const previousUnread = unreadCount;
+
+    setNotifications((current) =>
+      current.filter((n) => n.id !== notificationId),
+    );
+    if (!notifications.find((n) => n.id === notificationId)?.read) {
+      setUnreadCount((count) => Math.max(0, count - 1));
+    }
+
+    try {
+      await archiveJob(jobId, "no_response");
+      await markNotificationRead(notificationId);
+      showSuccess("Job archived.");
+      await load();
+    } catch (err) {
+      setNotifications(previousNotifications);
+      setUnreadCount(previousUnread);
+      showError(getErrorMessage(err, "Failed to archive job"));
+    }
   }
 
   return (
@@ -74,7 +135,7 @@ export function NotificationBell() {
             <span className="text-sm font-medium text-foreground">Notifications</span>
             <button
               type="button"
-              onClick={() => void markAllNotificationsRead().then(load)}
+              onClick={() => void handleMarkAllRead()}
               className="text-xs text-muted-foreground hover:text-foreground"
             >
               Mark all read
@@ -92,6 +153,15 @@ export function NotificationBell() {
                   <p className="text-sm font-medium text-foreground">{notification.title}</p>
                   <p className="mt-1 text-xs text-muted-foreground">{notification.message}</p>
                   <div className="mt-2 flex gap-3">
+                    {!notification.read ? (
+                      <button
+                        type="button"
+                        onClick={() => void handleMarkRead(notification.id)}
+                        className="text-xs text-muted-foreground underline"
+                      >
+                        Mark read
+                      </button>
+                    ) : null}
                     {notification.type === "stale_job" ? (
                       <button
                         type="button"
@@ -106,7 +176,10 @@ export function NotificationBell() {
                     <Link
                       href={`/jobs/${notification.jobId}`}
                       className="text-xs text-foreground underline"
-                      onClick={() => setOpen(false)}
+                      onClick={() => {
+                        void handleMarkRead(notification.id);
+                        setOpen(false);
+                      }}
                     >
                       View job
                     </Link>

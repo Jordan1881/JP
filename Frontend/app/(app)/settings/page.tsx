@@ -1,20 +1,17 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   AuthButton,
   AuthCard,
+  AuthError,
   AuthField,
   authInputClassName,
 } from "@/components/AuthCard";
-import { FormError } from "@/components/FormError";
 import { StageListEditor } from "@/components/StageListEditor";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { useToast } from "@/components/ToastProvider";
 import { deleteAccount } from "@/lib/account-api";
-import { getErrorMessage } from "@/lib/feedback";
 import { fetchPreferences, updatePreferences } from "@/lib/preferences-api";
 import {
   authDeleteUser,
@@ -24,7 +21,6 @@ import {
 
 export default function SettingsPage() {
   const router = useRouter();
-  const { showSuccess } = useToast();
   const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmDelete, setConfirmDelete] = useState("");
@@ -34,6 +30,7 @@ export default function SettingsPage() {
     useState(true);
   const [newStage, setNewStage] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -47,15 +44,16 @@ export default function SettingsPage() {
   async function savePreferences() {
     setSubmitting(true);
     setError(null);
+    setSuccess(null);
     try {
       await updatePreferences({
         stageList,
         staleNotificationsEnabled,
         preDeletionWarningsEnabled,
       });
-      showSuccess("Preferences saved.");
+      setSuccess("Preferences saved.");
     } catch (err) {
-      setError(getErrorMessage(err, "Failed to save preferences"));
+      setError(err instanceof Error ? err.message : "Failed to save preferences");
     } finally {
       setSubmitting(false);
     }
@@ -64,14 +62,15 @@ export default function SettingsPage() {
   async function handlePasswordChange(event: FormEvent) {
     event.preventDefault();
     setError(null);
+    setSuccess(null);
     setSubmitting(true);
     try {
       await authUpdatePassword(oldPassword, newPassword);
       setOldPassword("");
       setNewPassword("");
-      showSuccess("Password updated.");
+      setSuccess("Password updated.");
     } catch (err) {
-      setError(getErrorMessage(err, "Password update failed"));
+      setError(err instanceof Error ? err.message : "Password update failed");
     } finally {
       setSubmitting(false);
     }
@@ -90,7 +89,7 @@ export default function SettingsPage() {
       await authSignOut();
       router.replace("/login");
     } catch (err) {
-      setError(getErrorMessage(err, "Account deletion failed"));
+      setError(err instanceof Error ? err.message : "Account deletion failed");
     } finally {
       setSubmitting(false);
     }
@@ -100,14 +99,11 @@ export default function SettingsPage() {
     <AuthCard
       title="Settings"
       subtitle="Pipeline stages, notifications, password, and account."
-      footer={
-        <Link href="/" className="text-foreground underline">
-          Home
-        </Link>
-      }
-    >
+        embedded
+      >
       <div className="space-y-8">
-        <FormError message={error} onDismiss={() => setError(null)} />
+        <AuthError message={error} />
+        {success ? <p className="text-sm text-emerald-300">{success}</p> : null}
 
         <section className="space-y-3">
           <h2 className="text-sm font-semibold text-foreground">Appearance</h2>
