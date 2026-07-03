@@ -1,59 +1,100 @@
 import type { AgentChatMessage } from "@jp/shared-types";
 
+export type ClaudeAgentTier = "interview" | "generation";
+
+/** Central model map — agents pass a tier, not a raw model id. */
+export const CLAUDE_MODELS: Record<ClaudeAgentTier, string> = {
+  interview: "claude-opus-4-20250514",
+  generation: "claude-sonnet-4-20250514",
+};
+
 export interface ClaudeCompletionInput {
-  model: string;
   system: string;
   messages: AgentChatMessage[];
 }
 
 export interface ClaudeClient {
-  complete(input: ClaudeCompletionInput): Promise<string>;
+  complete(tier: ClaudeAgentTier, input: ClaudeCompletionInput): Promise<string>;
 }
 
-export class MockClaudeClient implements ClaudeClient {
-  async complete(input: ClaudeCompletionInput): Promise<string> {
-    const lastUser = [...input.messages]
-      .reverse()
-      .find((message) => message.role === "user");
-    return `Draft based on your input: ${lastUser?.content ?? "profile data"}`;
-  }
+const MAX_ATTEMPTS = 4;
+const INITIAL_BACKOFF_MS = 250;
+
+function isTransientStatus(status: number): boolean {
+  return status === 429 || status >= 500;
+}
+
+function backoffMs(attempt: number): number {
+  return INITIAL_BACKOFF_MS * 2 ** attempt;
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 export class AnthropicClaudeClient implements ClaudeClient {
   constructor(private readonly apiKey: string) {}
 
-  async complete(input: ClaudeCompletionInput): Promise<string> {
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "x-api-key": this.apiKey,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model: input.model,
-        max_tokens: 1200,
-        system: input.system,
-        messages: input.messages.map((message) => ({
-          role: message.role,
-          content: message.content,
-        })),
-      }),
-    });
+  async complete(
+    tier: ClaudeAgentTier,
+    input: ClaudeCompletionInput,
+  ): Promise<string> {
+    const model = CLAUDE_MODELS[tier];
+    let lastError: Error | undefined;
 
-    if (!response.ok) {
-      const body = await response.text();
-      throw new Error(`Claude API error: ${response.status} ${body}`);
+    for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+      try {
+        const response = await fetch("https://api.anthropic.com/v1/messages", {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            "x-api-key": this.apiKey,
+            "anthropic-version": "2023-06-01",
+          },
+          body: JSON.stringify({
+            model,
+            max_tokens: 1200,
+            system: input.system,
+            messages: input.messages.map((message) => ({
+              role: message.role,
+              content: message.content,
+            })),
+          }),
+        });
+
+        if (!response.ok) {
+          const body = await response.text();
+          const error = new Error(`Claude API error: ${response.status} ${body}`);
+          if (isTransientStatus(response.status) && attempt < MAX_ATTEMPTS - 1) {
+            lastError = error;
+            await sleep(backoffMs(attempt));
+            continue;
+          }
+          throw error;
+        }
+
+        const data = (await response.json()) as {
+          content?: Array<{ type: string; text?: string }>;
+        };
+        const text = data.content?.find((block) => block.type === "text")?.text;
+        if (!text) {
+          throw new Error("Claude API returned no text");
+        }
+        return text;
+      } catch (error) {
+        const isNetwork =
+          error instanceof TypeError ||
+          (error instanceof Error && error.message.includes("fetch"));
+        if (isNetwork && attempt < MAX_ATTEMPTS - 1) {
+          lastError = error instanceof Error ? error : new Error(String(error));
+          await sleep(backoffMs(attempt));
+          continue;
+        }
+        throw error;
+      }
     }
 
-    const data = (await response.json()) as {
-      content?: Array<{ type: string; text?: string }>;
-    };
-    const text = data.content?.find((block) => block.type === "text")?.text;
-    if (!text) {
-      throw new Error("Claude API returned no text");
-    }
-    return text;
+    throw lastError ?? new Error("Claude API request failed after retries");
   }
 }
 
@@ -93,13 +134,19 @@ class SecretBackedClaudeClient implements ClaudeClient {
 
   constructor(private readonly secretArn: string) {}
 
-  async complete(input: ClaudeCompletionInput): Promise<string> {
+  async complete(
+    tier: ClaudeAgentTier,
+    input: ClaudeCompletionInput,
+  ): Promise<string> {
     this.clientPromise ??= resolveAnthropicApiKey(this.secretArn).then(
       (apiKey) => new AnthropicClaudeClient(apiKey),
     );
-    return (await this.clientPromise).complete(input);
+    return (await this.clientPromise).complete(tier, input);
   }
 }
+
+const MISSING_CREDENTIALS_MESSAGE =
+  "Anthropic API credentials are required. Set ANTHROPIC_API_KEY (local dev) or ANTHROPIC_SECRET_ARN (Lambda).";
 
 export function createClaudeClient(apiKey = process.env.ANTHROPIC_API_KEY): ClaudeClient {
   if (apiKey?.trim()) {
@@ -111,7 +158,23 @@ export function createClaudeClient(apiKey = process.env.ANTHROPIC_API_KEY): Clau
     return new SecretBackedClaudeClient(secretArn);
   }
 
-  return new MockClaudeClient();
+  throw new Error(MISSING_CREDENTIALS_MESSAGE);
+}
+
+/**
+ * Parse structured JSON from Claude text or tool-use output (e.g. save_profile_data).
+ * Strips optional markdown fences before parsing.
+ */
+export function parseStructuredOutput<T>(raw: string): T {
+  const trimmed = raw.trim();
+  const fenced = trimmed.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
+  const jsonText = (fenced?.[1] ?? trimmed).trim();
+
+  try {
+    return JSON.parse(jsonText) as T;
+  } catch {
+    throw new Error("Claude structured output is not valid JSON");
+  }
 }
 
 /** @internal Test helper — resets per-container secret cache. */
