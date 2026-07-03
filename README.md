@@ -44,3 +44,7 @@ E2E_BASE_URL=https://main.dbkqz2plarhlv.amplifyapp.com \
 ```
 
 CI runs `e2e-local` (starts the app via Playwright `webServer`) and `e2e-production` when GitHub Actions secrets `E2E_EMAIL`, `E2E_PASSWORD`, and (for local) `COGNITO_*` are configured.
+
+## Deployment verification
+
+After merges to `main`, follow [docs/infra/deploy-runbook.md](docs/infra/deploy-runbook.md) to confirm Amplify auto-build, AWS CDK deploy secrets, and the manual production smoke checklist.
