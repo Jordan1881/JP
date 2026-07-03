@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { Job } from "@jp/shared-types";
 import { getDisplayStages } from "@jp/shared-types";
 import {
@@ -15,7 +15,7 @@ import {
 import { fetchPreferences } from "@/lib/preferences-api";
 import { fetchProfile } from "@/lib/profile-api";
 import { cn } from "@/lib/utils";
-import { ConfirmModal } from "@/components/ConfirmModal";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 
 interface JobDetailViewProps {
   jobId: string;
@@ -48,7 +48,8 @@ export function JobDetailView({ jobId }: JobDetailViewProps) {
   const [profileComplete, setProfileComplete] = useState(false);
   const [revision, setRevision] = useState("");
   const [announcementRevision, setAnnouncementRevision] = useState("");
-  const [generating, setGenerating] = useState(false);
+  const [generatingCoverLetter, setGeneratingCoverLetter] = useState(false);
+  const [generatingAnnouncement, setGeneratingAnnouncement] = useState(false);
   const [historyExpanded, setHistoryExpanded] = useState(false);
   const [confirmAction, setConfirmAction] = useState<"archive" | "delete" | null>(null);
 
@@ -75,6 +76,26 @@ export function JobDetailView({ jobId }: JobDetailViewProps) {
   useEffect(() => {
     void loadJob();
   }, [loadJob]);
+  const notesDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const notesDirty = job ? notes !== (job.notes ?? "") : false;
+
+  useEffect(() => {
+    if (!job || notes === (job.notes ?? "")) {
+      return;
+    }
+    if (notesDebounceRef.current) {
+      clearTimeout(notesDebounceRef.current);
+    }
+    notesDebounceRef.current = setTimeout(() => {
+      void handleSaveNotes();
+    }, 800);
+    return () => {
+      if (notesDebounceRef.current) {
+        clearTimeout(notesDebounceRef.current);
+      }
+    };
+  }, [notes, job]);
+
 
   async function handleStageChange(stage: string) {
     if (!job || stage === job.currentStage) {
@@ -133,6 +154,13 @@ export function JobDetailView({ jobId }: JobDetailViewProps) {
   }
 
   const stages = getDisplayStages(job, stageList);
+
+  const historyCollapsedByDefault = historyEntries.length > 5;
+  const showFullHistory = historyExpanded || !historyCollapsedByDefault;
+  const visibleHistory = showFullHistory
+    ? historyEntries
+    : historyEntries.slice(0, 5);
+
   const historyEntries = Object.entries(job.stageHistory).sort(
     ([, left], [, right]) => right.localeCompare(left),
   );
@@ -174,6 +202,31 @@ export function JobDetailView({ jobId }: JobDetailViewProps) {
           ) : null}
         </header>
 
+        {job.currentStage === "Accepted" && !job.announcement ? (
+          <div className="mt-6 rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-5">
+            <p className="text-sm font-medium text-emerald-100">Congratulations on your offer!</p>
+            <p className="mt-1 text-sm text-emerald-200/80">
+              Generate a professional announcement to share your news.
+            </p>
+            <button
+              type="button"
+              disabled={!profileComplete || generatingAnnouncement}
+              onClick={() => {
+                setGeneratingAnnouncement(true);
+                void generateAnnouncement(jobId, { action: "generate" })
+                  .then((result) => setJob(result.job))
+                  .catch((err: unknown) =>
+                    setError(err instanceof Error ? err.message : "Generation failed"),
+                  )
+                  .finally(() => setGeneratingAnnouncement(false));
+              }}
+              className="mt-4 rounded-md bg-primary px-4 py-2 text-xs font-semibold tracking-widest text-primary-foreground uppercase disabled:opacity-50"
+            >
+              {profileComplete ? (generatingAnnouncement ? "Generating…" : "Generate announcement") : "Complete profile first"}
+            </button>
+          </div>
+        ) : null}
+
         {error ? (
           <p className="mt-6 rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-200">
             {error}
@@ -188,7 +241,10 @@ export function JobDetailView({ jobId }: JobDetailViewProps) {
             {stages.map((stage, index) => {
               const isCurrent = stage === job.currentStage;
               const currentIndex = stages.indexOf(job.currentStage);
-              const isPast = index < currentIndex;
+              const isPast = stage in job.stageHistory && stage !== job.currentStage;
+              const isTerminal = (TERMINAL_STAGES as readonly string[]).includes(stage);
+              const isAccepted = stage === "Accepted";
+              const isRejected = stage === "Rejected";
               const isChanging = changingStage === stage;
 
               return (
@@ -204,11 +260,21 @@ export function JobDetailView({ jobId }: JobDetailViewProps) {
                     <span
                       className={cn(
                         "flex h-8 w-8 items-center justify-center rounded-full border text-xs font-semibold",
-                        isCurrent
-                          ? "border-foreground bg-foreground text-background"
-                          : isPast
-                            ? "border-emerald-500/50 bg-emerald-500/20 text-foreground"
-                            : "border-border bg-secondary text-muted-foreground",
+                        isCurrent && isAccepted
+                          ? "border-emerald-400 bg-emerald-400 text-black"
+                          : isCurrent && isRejected
+                            ? "border-muted-foreground bg-muted text-background"
+                            : isCurrent
+                              ? "border-foreground bg-foreground text-background"
+                              : isPast && isAccepted
+                                ? "border-emerald-500/50 bg-emerald-500/20 text-emerald-100"
+                                : isPast && isRejected
+                                  ? "border-border bg-muted/40 text-muted-foreground"
+                                  : isPast
+                                    ? "border-emerald-500/50 bg-emerald-500/20 text-foreground"
+                                    : isTerminal
+                                      ? "border-white/15 bg-secondary/60 text-muted-foreground"
+                                      : "border-border bg-secondary text-muted-foreground",
                       )}
                     >
                       {isChanging ? "…" : index + 1}
@@ -254,12 +320,12 @@ export function JobDetailView({ jobId }: JobDetailViewProps) {
               {historyExpanded ? "Hide" : "Show"}
             </span>
           </button>
-          {historyExpanded ? (
+          {showFullHistory || historyCollapsedByDefault ? (
             historyEntries.length === 0 ? (
               <p className="mt-3 text-sm text-muted-foreground">No history yet.</p>
             ) : (
               <ul className="mt-4 space-y-3">
-                {historyEntries.map(([stage, timestamp]) => (
+                {visibleHistory.map(([stage, timestamp]) => (
                   <li
                     key={stage}
                     className="flex items-center justify-between gap-4 text-sm"
@@ -281,6 +347,15 @@ export function JobDetailView({ jobId }: JobDetailViewProps) {
                 ))}
               </ul>
             )
+            {historyCollapsedByDefault ? (
+              <button
+                type="button"
+                onClick={() => setHistoryExpanded((value) => !value)}
+                className="mt-4 text-xs text-muted-foreground underline hover:text-foreground"
+              >
+                {historyExpanded ? "Show less" : `Show all ${historyEntries.length} entries`}
+              </button>
+            ) : null}
           ) : null}
         </section>
 
@@ -289,7 +364,7 @@ export function JobDetailView({ jobId }: JobDetailViewProps) {
             <h2 className="text-sm font-semibold tracking-widest text-muted-foreground uppercase">
               Notes
             </h2>
-            {notes !== (job.notes ?? "") ? (
+            {notesDirty ? (
               <span className="text-xs text-amber-200/90">Unsaved changes</span>
             ) : null}
           </div>
@@ -335,19 +410,19 @@ export function JobDetailView({ jobId }: JobDetailViewProps) {
           </h2>
           <button
             type="button"
-            disabled={!profileComplete || generating}
+            disabled={!profileComplete || generatingCoverLetter}
             onClick={() => {
-              setGenerating(true);
+              setGeneratingCoverLetter(true);
               void generateCoverLetter(jobId, { action: "generate" })
                 .then((result) => setJob(result.job))
                 .catch((err: unknown) =>
                   setError(err instanceof Error ? err.message : "Generation failed"),
                 )
-                .finally(() => setGenerating(false));
+                .finally(() => setGeneratingCoverLetter(false));
             }}
             className="mt-4 rounded-md bg-primary px-4 py-2 text-xs uppercase tracking-widest text-primary-foreground disabled:opacity-50"
           >
-            {profileComplete ? (generating ? "Generating…" : "Generate cover letter") : "Complete profile first"}
+            {profileComplete ? (generatingCoverLetter ? "Generating…" : "Generate cover letter") : "Complete profile first"}
           </button>
           {job.coverLetter ? (
             <>
@@ -372,9 +447,9 @@ export function JobDetailView({ jobId }: JobDetailViewProps) {
               />
               <button
                 type="button"
-                disabled={!revision.trim() || generating}
+                disabled={!revision.trim() || generatingCoverLetter}
                 onClick={() => {
-                  setGenerating(true);
+                  setGeneratingCoverLetter(true);
                   void generateCoverLetter(jobId, {
                     action: "revise",
                     instruction: revision,
@@ -383,7 +458,7 @@ export function JobDetailView({ jobId }: JobDetailViewProps) {
                       setJob(result.job);
                       setRevision("");
                     })
-                    .finally(() => setGenerating(false));
+                    .finally(() => setGeneratingCoverLetter(false));
                 }}
                 className="mt-3 rounded-md border border-border px-4 py-2 text-xs uppercase tracking-widest"
               >
@@ -400,19 +475,19 @@ export function JobDetailView({ jobId }: JobDetailViewProps) {
             </h2>
             <button
               type="button"
-              disabled={!profileComplete || generating}
+              disabled={!profileComplete || generatingAnnouncement}
               onClick={() => {
-                setGenerating(true);
+                setGeneratingAnnouncement(true);
                 void generateAnnouncement(jobId, { action: "generate" })
                   .then((result) => setJob(result.job))
                   .catch((err: unknown) =>
                     setError(err instanceof Error ? err.message : "Generation failed"),
                   )
-                  .finally(() => setGenerating(false));
+                  .finally(() => setGeneratingAnnouncement(false));
               }}
               className="mt-4 rounded-md bg-primary px-4 py-2 text-xs uppercase tracking-widest text-primary-foreground disabled:opacity-50"
             >
-              {profileComplete ? (generating ? "Generating…" : "Generate announcement") : "Complete profile first"}
+              {profileComplete ? (generatingAnnouncement ? "Generating…" : "Generate announcement") : "Complete profile first"}
             </button>
             {job.announcement ? (
               <>
@@ -437,9 +512,9 @@ export function JobDetailView({ jobId }: JobDetailViewProps) {
                 />
                 <button
                   type="button"
-                  disabled={!announcementRevision.trim() || generating}
+                  disabled={!announcementRevision.trim() || generatingAnnouncement}
                   onClick={() => {
-                    setGenerating(true);
+                    setGeneratingAnnouncement(true);
                     void generateAnnouncement(jobId, {
                       action: "revise",
                       instruction: announcementRevision,
@@ -451,7 +526,7 @@ export function JobDetailView({ jobId }: JobDetailViewProps) {
                       .catch((err: unknown) =>
                         setError(err instanceof Error ? err.message : "Revision failed"),
                       )
-                      .finally(() => setGenerating(false));
+                      .finally(() => setGeneratingAnnouncement(false));
                   }}
                   className="mt-3 rounded-md border border-border px-4 py-2 text-xs uppercase tracking-widest"
                 >
@@ -462,10 +537,10 @@ export function JobDetailView({ jobId }: JobDetailViewProps) {
           </section>
         ) : null}
 
-        <ConfirmModal
+        <ConfirmDialog
           open={confirmAction === "archive"}
           title="Archive this job?"
-          message="Manual archives are permanently deleted after 30 days."
+          description="Manual archives are permanently deleted after 30 days."
           confirmLabel="Archive"
           onCancel={() => setConfirmAction(null)}
           onConfirm={() => {
@@ -475,10 +550,10 @@ export function JobDetailView({ jobId }: JobDetailViewProps) {
             });
           }}
         />
-        <ConfirmModal
+        <ConfirmDialog
           open={confirmAction === "delete"}
           title="Delete permanently?"
-          message="This cannot be undone."
+          description="This cannot be undone."
           confirmLabel="Delete"
           destructive
           onCancel={() => setConfirmAction(null)}
