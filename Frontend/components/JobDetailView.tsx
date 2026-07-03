@@ -136,9 +136,9 @@ export function JobDetailView({ jobId }: JobDetailViewProps) {
   );
 
   return (
-    <div className="min-h-screen bg-background">
+    <div>
       <div className="pointer-events-none fixed inset-0 grid-dots opacity-60" />
-      <div className="relative mx-auto max-w-3xl px-6 py-10 md:py-14">
+      <div className="relative mx-auto max-w-3xl px-4 py-10 sm:px-6 md:py-14">
         <Link
           href="/#applications"
           className="text-xs font-medium tracking-widest text-muted-foreground uppercase transition-colors hover:text-foreground"
