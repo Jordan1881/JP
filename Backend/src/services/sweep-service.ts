@@ -1,15 +1,17 @@
-import { getDevJobRepository } from "../modules/job-repository/factory.js";
-import { getDevNotificationCenter } from "../modules/notification-center/index.js";
-import { getDevUserPreferencesRepository } from "../modules/user-preferences/index.js";
+import {
+  getJobRepository,
+  getNotificationCenter,
+  getUserPreferencesRepository,
+} from "./store-provider.js";
 import { runStalenessSweep } from "../modules/staleness-scheduler/index.js";
 
 export async function runDailySweep(userId: string, now?: Date): Promise<{
   createdNotifications: number;
   deletedJobs: number;
 }> {
-  const jobRepository = getDevJobRepository();
-  const preferencesRepository = getDevUserPreferencesRepository();
-  const notificationCenter = getDevNotificationCenter();
+  const jobRepository = await getJobRepository();
+  const preferencesRepository = await getUserPreferencesRepository();
+  const notificationCenter = await getNotificationCenter();
   const preferences = await preferencesRepository.getOrCreate(userId);
   const jobs = await jobRepository.list(userId, { status: "all" });
   const notifications = await notificationCenter.list(userId);

@@ -6,7 +6,7 @@ import type {
   UpdateAccountInput,
 } from "@jp/shared-types";
 import { getUserId } from "./auth.js";
-import { getDevUserAccountRepository } from "../modules/user-account/factory.js";
+import { getUserAccountRepository } from "../services/store-provider.js";
 
 const JSON_HEADERS = { "Content-Type": "application/json" };
 
@@ -36,7 +36,7 @@ export async function getAccountHandler(
   event: APIGatewayProxyEvent,
 ): Promise<APIGatewayProxyResult> {
   try {
-    const account = await getDevUserAccountRepository().get(getUserId(event));
+    const account = await (await getUserAccountRepository()).get(getUserId(event));
     if (!account) {
       return response(404, { error: "Account not found" });
     }
@@ -55,7 +55,7 @@ export async function createAccountHandler(
 
   try {
     const input = JSON.parse(event.body) as CreateAccountInput;
-    const account = await getDevUserAccountRepository().create(
+    const account = await (await getUserAccountRepository()).create(
       getUserId(event),
       input,
     );
@@ -74,7 +74,7 @@ export async function updateAccountHandler(
 
   try {
     const input = JSON.parse(event.body) as UpdateAccountInput;
-    const account = await getDevUserAccountRepository().update(
+    const account = await (await getUserAccountRepository()).update(
       getUserId(event),
       input,
     );
@@ -93,7 +93,7 @@ export async function acceptTermsHandler(
 
   try {
     const input = JSON.parse(event.body) as AcceptTermsInput;
-    const account = await getDevUserAccountRepository().acceptTerms(
+    const account = await (await getUserAccountRepository()).acceptTerms(
       getUserId(event),
       input,
     );
@@ -115,7 +115,7 @@ export async function deleteAccountHandler(
     if (input.confirm !== true) {
       return response(400, { error: "Account deletion requires confirmation" });
     }
-    await getDevUserAccountRepository().delete(getUserId(event));
+    await (await getUserAccountRepository()).delete(getUserId(event));
     return response(200, { deleted: true });
   } catch (error) {
     return mapError(error);

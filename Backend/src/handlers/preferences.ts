@@ -1,7 +1,7 @@
 import type { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
 import type { UpdateUserPreferencesInput } from "@jp/shared-types";
 import { getUserId } from "./auth.js";
-import { getDevUserPreferencesRepository } from "../modules/user-preferences/index.js";
+import { getUserPreferencesRepository } from "../services/store-provider.js";
 
 const JSON_HEADERS = { "Content-Type": "application/json" };
 
@@ -13,7 +13,7 @@ export async function getPreferencesHandler(
   event: APIGatewayProxyEvent,
 ): Promise<APIGatewayProxyResult> {
   try {
-    const preferences = await getDevUserPreferencesRepository().getOrCreate(
+    const preferences = await (await getUserPreferencesRepository()).getOrCreate(
       getUserId(event),
     );
     return response(200, { preferences });
@@ -33,7 +33,7 @@ export async function updatePreferencesHandler(
 
   try {
     const input = JSON.parse(event.body) as UpdateUserPreferencesInput;
-    const preferences = await getDevUserPreferencesRepository().update(
+    const preferences = await (await getUserPreferencesRepository()).update(
       getUserId(event),
       input,
     );

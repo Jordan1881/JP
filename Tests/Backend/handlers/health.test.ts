@@ -10,6 +10,10 @@ describe("health handler smoke", () => {
     expect(result.statusCode).toBe(200);
 
     const body = JSON.parse(result.body) as ApiHealthResponse;
-    expect(body).toEqual({ status: "ok", service: "jp-job-player" });
+    expect(body.status).toBe("ok");
+    expect(body.service).toBe("jp-job-player");
+    // Reports DB connectivity: "connected" when a database is configured
+    // (e.g. CI postgres service), "not_configured" in pure local dev.
+    expect(["connected", "not_configured"]).toContain(body.database);
   });
 });

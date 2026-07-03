@@ -57,6 +57,15 @@ export {
   JobAnnouncementAgent,
 } from "./modules/generation-agents/index.js";
 export { runDailySweep } from "./services/sweep-service.js";
+export {
+  getPool,
+  getJobRepository,
+  getJobStore,
+  getUserAccountRepository,
+  getProfileRepository,
+  getUserPreferencesRepository,
+  getNotificationCenter,
+} from "./services/store-provider.js";
 export { resolveDatabaseConfig } from "./db/config.js";
 export type { DatabaseConfig } from "./db/config.js";
 export { createPool, getSharedPool } from "./db/pool.js";

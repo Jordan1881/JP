@@ -108,4 +108,6 @@ export interface DashboardStats {
 export interface ApiHealthResponse {
   status: "ok";
   service: "jp-job-player";
+  /** Only reported by deployed environments; absent means not checked. */
+  database?: "connected" | "not_configured" | "error";
 }
