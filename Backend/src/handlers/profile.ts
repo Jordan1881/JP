@@ -72,8 +72,8 @@ export async function profileInterviewHandler(
 
     if (body.answer?.trim()) {
       messages.push({ role: "user", content: body.answer.trim() });
-      completedTopics = agent.inferCompletedTopics(
-        body.answer,
+      completedTopics = await agent.updateCompletedTopics(
+        messages,
         completedTopics,
       );
     }
@@ -81,7 +81,7 @@ export async function profileInterviewHandler(
     if (agent.isInterviewComplete(completedTopics)) {
       const profile = await repository.saveInterviewProfile(
         userId,
-        agent.buildProfileFromTranscript(messages),
+        await agent.buildProfileFromTranscript(messages),
       );
       return response(200, {
         complete: true,

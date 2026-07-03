@@ -39,13 +39,16 @@ async function interviewLocally(request: Request) {
 
     if (body.answer?.trim()) {
       messages.push({ role: "user", content: body.answer.trim() });
-      completedTopics = agent.inferCompletedTopics(body.answer, completedTopics);
+      completedTopics = await agent.updateCompletedTopics(
+        messages,
+        completedTopics,
+      );
     }
 
     if (agent.isInterviewComplete(completedTopics)) {
       const profile = await repository.saveInterviewProfile(
         userId,
-        agent.buildProfileFromTranscript(messages),
+        await agent.buildProfileFromTranscript(messages),
       );
       return NextResponse.json({
         complete: true,
