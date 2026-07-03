@@ -6,6 +6,7 @@ import { searchAndFilterJobs } from "@jp/shared-types";
 import { gsap, registerGsapPlugins } from "@/lib/gsap";
 import { AddJobForm } from "@/components/AddJobForm";
 import { ApplicationsTable } from "@/components/ApplicationsTable";
+import { ApplicationsTableSkeleton } from "@/components/ApplicationsTableSkeleton";
 import { HeroVisual } from "@/components/HeroVisual";
 import { AppLogo } from "@/components/AppLogo";
 import { TopLoadBar } from "@/components/TopLoadBar";
@@ -250,9 +251,7 @@ export function HomeView() {
         </div>
         <div data-scroll-reveal id="applications">
           {jobsLoading ? (
-            <p className="text-sm font-normal text-muted-foreground">
-              Loading applications…
-            </p>
+            <ApplicationsTableSkeleton />
           ) : (
             <ApplicationsTable jobs={jobs} stageList={stageList} />
           )}
