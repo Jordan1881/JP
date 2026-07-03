@@ -43,6 +43,19 @@ export async function listJobsHandler(
   }
 }
 
+const IMPORT_CLIENT_ERROR_MARKERS = [
+  "required",
+  "Invalid",
+  "Could not",
+  "Try pasting",
+  "Timed out",
+  "too large",
+  "not look like",
+  "blocks automated",
+  "Paste more",
+  "http or https",
+];
+
 export async function importJobFromUrlHandler(
   event: APIGatewayProxyEvent,
 ): Promise<APIGatewayProxyResult> {
@@ -51,27 +64,27 @@ export async function importJobFromUrlHandler(
   }
 
   try {
-    const body = JSON.parse(event.body) as { url?: string };
-    if (!body.url?.trim()) {
-      return response(400, { error: "Job URL is required" });
+    const body = JSON.parse(event.body) as { url?: string; text?: string };
+    const agent = new JobImportAgent(createClaudeClient());
+
+    let fields;
+    if (body.text?.trim()) {
+      fields = await agent.importFromText(body.text);
+    } else if (body.url?.trim()) {
+      fields = await agent.importFromUrl(body.url);
+    } else {
+      return response(400, { error: "A job URL or pasted text is required" });
     }
 
-    const agent = new JobImportAgent(createClaudeClient());
-    const fields = await agent.importFromUrl(body.url);
     return response(200, { fields });
   } catch (error) {
     const message =
-      error instanceof Error ? error.message : "Failed to import job from URL";
-    const statusCode =
-      message.includes("required") ||
-      message.includes("Invalid") ||
-      message.includes("Could not") ||
-      message.includes("Try filling") ||
-      message.includes("Timed out") ||
-      message.includes("too large") ||
-      message.includes("not look like")
-        ? 400
-        : 500;
+      error instanceof Error ? error.message : "Failed to import job";
+    const statusCode = IMPORT_CLIENT_ERROR_MARKERS.some((marker) =>
+      message.includes(marker),
+    )
+      ? 400
+      : 500;
     return response(statusCode, { error: message });
   }
 }

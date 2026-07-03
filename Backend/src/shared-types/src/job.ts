@@ -49,16 +49,18 @@ export type CreateJobInput = Pick<
     >
   >;
 
-/** Fields extracted from a job posting URL (user reviews before create). */
-export interface JobImportFromUrlInput {
-  url: string;
+/**
+ * Import request: either a posting URL (server fetches it) or pasted job text
+ * (for bot-protected sites like LinkedIn / defense contractors). At least one
+ * is required; `url` is still stored on the job when provided.
+ */
+export interface JobImportInput {
+  url?: string;
+  text?: string;
 }
 
-export type JobImportFromUrlResult = Pick<
-  CreateJobInput,
-  "title" | "company" | "url"
-> &
-  Partial<Pick<CreateJobInput, "jobNumber" | "description" | "notes">>;
+export type JobImportResult = Pick<CreateJobInput, "title" | "company"> &
+  Partial<Pick<CreateJobInput, "url" | "jobNumber" | "description" | "notes">>;
 
 export type UpdateJobInput = Partial<
   Omit<Job, "id" | "userId" | "submissionDate">

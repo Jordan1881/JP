@@ -3,6 +3,7 @@ import type { ClaudeClient } from "@backend/modules/claude-api-client/index.js";
 import {
   JobImportAgent,
   htmlToText,
+  looksLikeBotChallenge,
   parseJobUrl,
 } from "@backend/modules/job-import-agent/index.js";
 
@@ -17,6 +18,9 @@ class StubClaudeClient implements ClaudeClient {
   }
 }
 
+const LONG_CONTENT =
+  "<html><body><h1>Senior Engineer at Acme</h1><p>We are hiring a senior engineer to build APIs and ship features across our platform.</p></body></html>";
+
 describe("parseJobUrl", () => {
   it("accepts https URLs", () => {
     expect(parseJobUrl("https://jobs.example.com/role").href).toBe(
@@ -29,9 +33,7 @@ describe("parseJobUrl", () => {
   });
 
   it("rejects non-http schemes", () => {
-    expect(() => parseJobUrl("ftp://example.com/job")).toThrow(
-      "http or https",
-    );
+    expect(() => parseJobUrl("ftp://example.com/job")).toThrow("http or https");
   });
 });
 
@@ -46,10 +48,25 @@ describe("htmlToText", () => {
   });
 });
 
-describe("JobImportAgent", () => {
+describe("looksLikeBotChallenge", () => {
+  it("detects a JS challenge shell", () => {
+    const html =
+      '<html><head><script>winsocks();window.rbzns={};</script></head><body></body></html>';
+    expect(looksLikeBotChallenge(html, htmlToText(html))).toBe(true);
+  });
+
+  it("does not flag real content", () => {
+    expect(looksLikeBotChallenge(LONG_CONTENT, htmlToText(LONG_CONTENT))).toBe(
+      false,
+    );
+  });
+});
+
+describe("JobImportAgent.importFromUrl", () => {
   it("extracts fields from fetched HTML via Claude", async () => {
-    const agent = new JobImportAgent(new StubClaudeClient(), async () =>
-      "<html><body><h1>Senior Engineer at Acme</h1><p>We are hiring a senior engineer to build APIs and ship features across our platform.</p></body></html>",
+    const agent = new JobImportAgent(
+      new StubClaudeClient(),
+      async () => LONG_CONTENT,
     );
 
     const fields = await agent.importFromUrl("https://jobs.acme.com/123");
@@ -63,11 +80,15 @@ describe("JobImportAgent", () => {
     expect(fields.notes).toContain("jobs.acme.com");
   });
 
-  it("fails when page text is too short", async () => {
-    const agent = new JobImportAgent(new StubClaudeClient(), async () => "<p>Hi</p>");
+  it("reports a clear error for bot-challenge pages", async () => {
+    const agent = new JobImportAgent(
+      new StubClaudeClient(),
+      async () =>
+        '<html><head><script>winsocks();window.rbzns={};</script></head><body></body></html>',
+    );
     await expect(
-      agent.importFromUrl("https://jobs.acme.com/empty"),
-    ).rejects.toThrow("Could not read enough content");
+      agent.importFromUrl("https://career.rafael.co.il/job/13034/"),
+    ).rejects.toThrow("blocks automated access");
   });
 
   it("fails when Claude returns empty title", async () => {
@@ -76,11 +97,32 @@ describe("JobImportAgent", () => {
         return JSON.stringify({ title: "", company: "", jobNumber: null });
       }
     }
-    const agent = new JobImportAgent(new EmptyClient(), async () =>
-      "<html><body>" + "x".repeat(80) + "</body></html>",
+    const agent = new JobImportAgent(new EmptyClient(), async () => LONG_CONTENT);
+    await expect(
+      agent.importFromUrl("https://jobs.acme.com/login"),
+    ).rejects.toThrow("Could not find a job title");
+  });
+});
+
+describe("JobImportAgent.importFromText", () => {
+  it("extracts fields from pasted text", async () => {
+    const agent = new JobImportAgent(new StubClaudeClient());
+    const fields = await agent.importFromText(
+      "Senior Engineer at Acme Corp. We build APIs and ship features across the platform.",
     );
-    await expect(agent.importFromUrl("https://jobs.acme.com/login")).rejects.toThrow(
-      "Could not find a job title",
+    expect(fields).toMatchObject({
+      title: "Senior Engineer",
+      company: "Acme Corp",
+      jobNumber: "REQ-42",
+    });
+    expect(fields.url).toBeUndefined();
+    expect(fields.notes).toContain("pasted text");
+  });
+
+  it("rejects text that is too short", async () => {
+    const agent = new JobImportAgent(new StubClaudeClient());
+    await expect(agent.importFromText("engineer")).rejects.toThrow(
+      "Paste more",
     );
   });
 });
