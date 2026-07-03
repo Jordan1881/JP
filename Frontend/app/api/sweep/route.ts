@@ -1,16 +1,19 @@
 import { runDailySweep, LOCAL_DEV_USER_ID } from "@jp/backend";
 import { NextResponse } from "next/server";
+import { proxyOr } from "@/lib/server/backend-proxy";
 
 function getUserId(request: Request): string {
   return request.headers.get("x-user-id") ?? LOCAL_DEV_USER_ID;
 }
 
 export async function POST(request: Request) {
-  try {
-    const result = await runDailySweep(getUserId(request));
-    return NextResponse.json(result);
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Sweep failed";
-    return NextResponse.json({ error: message }, { status: 500 });
-  }
+  return proxyOr(request, "/sweep", async () => {
+    try {
+      const result = await runDailySweep(getUserId(request));
+      return NextResponse.json(result);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Sweep failed";
+      return NextResponse.json({ error: message }, { status: 500 });
+    }
+  });
 }
