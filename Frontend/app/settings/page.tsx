@@ -10,6 +10,7 @@ import {
   AuthField,
   authInputClassName,
 } from "@/components/AuthCard";
+import { StageListEditor } from "@/components/StageListEditor";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { deleteAccount } from "@/lib/account-api";
 import { fetchPreferences, updatePreferences } from "@/lib/preferences-api";
@@ -120,50 +121,22 @@ export default function SettingsPage() {
         <section className="space-y-4">
           <h2 className="text-sm font-semibold text-foreground">Interview stages</h2>
           <p className="text-sm text-muted-foreground">
-            Accepted and Rejected stay fixed as terminal outcomes.
+            Drag to reorder custom stages. Accepted and Rejected stay fixed as
+            terminal outcomes.
           </p>
-          <ul className="space-y-2">
-            {stageList.map((stage, index) => (
-              <li key={`${stage}-${index}`} className="flex gap-2">
-                <input
-                  className={authInputClassName}
-                  value={stage}
-                  onChange={(event) => {
-                    const next = [...stageList];
-                    next[index] = event.target.value;
-                    setStageList(next);
-                  }}
-                />
-                <button
-                  type="button"
-                  onClick={() => setStageList(stageList.filter((_, i) => i !== index))}
-                  className="rounded-md border border-border px-3 text-xs"
-                >
-                  Remove
-                </button>
-              </li>
-            ))}
-          </ul>
-          <div className="flex gap-2">
-            <input
-              className={authInputClassName}
-              placeholder="New stage name"
-              value={newStage}
-              onChange={(event) => setNewStage(event.target.value)}
-            />
-            <button
-              type="button"
-              onClick={() => {
-                if (newStage.trim()) {
-                  setStageList([...stageList, newStage.trim()]);
-                  setNewStage("");
-                }
-              }}
-              className="rounded-md border border-border px-3 text-xs uppercase tracking-widest"
-            >
-              Add
-            </button>
-          </div>
+          <StageListEditor
+            stageList={stageList}
+            onStageListChange={setStageList}
+            newStage={newStage}
+            onNewStageChange={setNewStage}
+            onAddStage={() => {
+              if (newStage.trim()) {
+                setStageList([...stageList, newStage.trim()]);
+                setNewStage("");
+              }
+            }}
+            disabled={submitting}
+          />
         </section>
 
         <section className="space-y-3">

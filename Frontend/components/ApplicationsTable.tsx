@@ -3,11 +3,11 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import type { Job } from "@jp/shared-types";
-import { searchAndFilterJobs } from "@jp/shared-types";
+import { buildStageFilterOptions, searchAndFilterJobs } from "@jp/shared-types";
 
 interface ApplicationsTableProps {
   jobs: Job[];
-  stages?: string[];
+  stageList?: string[];
 }
 
 function formatDate(iso: string): string {
@@ -18,7 +18,7 @@ function formatDate(iso: string): string {
   });
 }
 
-export function ApplicationsTable({ jobs, stages = [] }: ApplicationsTableProps) {
+export function ApplicationsTable({ jobs, stageList }: ApplicationsTableProps) {
   const [query, setQuery] = useState("");
   const [stage, setStage] = useState("");
 
@@ -33,10 +33,10 @@ export function ApplicationsTable({ jobs, stages = [] }: ApplicationsTableProps)
     [jobs, query, stage],
   );
 
-  const stageOptions = useMemo(() => {
-    const fromJobs = jobs.map((job) => job.currentStage);
-    return [...new Set([...stages, ...fromJobs])].sort();
-  }, [jobs, stages]);
+  const stageOptions = useMemo(
+    () => buildStageFilterOptions(stageList, jobs),
+    [jobs, stageList],
+  );
 
   return (
     <section className="overflow-hidden rounded-xl border border-border bg-card/80 backdrop-blur-sm">
