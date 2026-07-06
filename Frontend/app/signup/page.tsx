@@ -18,6 +18,7 @@ import { createAccount, fetchAccount } from "@/lib/account-api";
 import {
   authConfirmSignUp,
   authGetProfile,
+  authIsFederatedSignIn,
   authSignIn,
   authSignUp,
   formatCognitoError,
@@ -36,7 +37,7 @@ export default function SignupPage() {
   const [code, setCode] = useState("");
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [needsConfirmation, setNeedsConfirmation] = useState(false);
-  const [profileFromOAuth, setProfileFromOAuth] = useState(false);
+  const [isFederatedSignIn, setIsFederatedSignIn] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -62,10 +63,13 @@ export default function SignupPage() {
         return;
       }
 
-      const profile = await authGetProfile();
+      const [profile, federated] = await Promise.all([
+        authGetProfile(),
+        authIsFederatedSignIn(),
+      ]);
       setEmail(profile.email ?? "");
       setName(profile.name ?? "");
-      setProfileFromOAuth(Boolean(profile.email));
+      setIsFederatedSignIn(federated);
       setMode("complete");
     }
 
@@ -138,6 +142,10 @@ export default function SignupPage() {
   }
 
   const isComplete = mode === "complete";
+  const hasPrefilledProfile =
+    Boolean(name.trim()) && Boolean(email.trim());
+  const showCompactProfile =
+    isComplete && isFederatedSignIn && hasPrefilledProfile;
   const title = needsConfirmation
     ? "Confirm your email"
     : isComplete
@@ -146,7 +154,9 @@ export default function SignupPage() {
   const subtitle = needsConfirmation
     ? "Enter the verification code sent to your email."
     : isComplete
-      ? "You're signed in. Accept the terms to start using JP."
+      ? isFederatedSignIn
+        ? "You're signed in. Accept the terms to start using JP."
+        : "One more step — add your name to finish setting up JP."
       : "Create your JP account with email or Google.";
 
   return (
@@ -179,36 +189,33 @@ export default function SignupPage() {
 
         {!needsConfirmation ? (
           <>
-            {!isComplete || !profileFromOAuth ? (
+            {showCompactProfile ? (
+              <p className="text-sm text-muted-foreground">
+                Signed in as{" "}
+                <span className="font-medium text-foreground">{name}</span> (
+                <span className="text-foreground">{email}</span>)
+              </p>
+            ) : null}
+            {!showCompactProfile || !name.trim() ? (
               <AuthField label="Name">
                 <input
                   className={authInputClassName}
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  readOnly={isComplete && profileFromOAuth}
+                  placeholder={email ? email.split("@")[0] : undefined}
+                  readOnly={showCompactProfile}
                   required
                 />
               </AuthField>
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                Signed in as{" "}
-                <span className="font-medium text-foreground">{name}</span>
-                {email ? (
-                  <>
-                    {" "}
-                    (<span className="text-foreground">{email}</span>)
-                  </>
-                ) : null}
-              </p>
-            )}
-            {!isComplete || !profileFromOAuth ? (
+            ) : null}
+            {!showCompactProfile ? (
               <AuthField label="Email">
                 <input
                   type="email"
                   className={authInputClassName}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  readOnly={isComplete && profileFromOAuth && Boolean(email)}
+                  readOnly={isComplete && Boolean(email)}
                   required
                 />
               </AuthField>
