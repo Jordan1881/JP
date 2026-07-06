@@ -4,12 +4,15 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import type { DashboardStats } from "@jp/shared-types";
 import { resolvePipelineStages, sortStagesByPipeline } from "@jp/shared-types";
+import { JpBackgroundLoad } from "@/components/JpBackgroundLoad";
+import { JpLoader } from "@/components/JpLoader";
 import { fetchPreferences } from "@/lib/preferences-api";
 import { fetchDashboardStats } from "@/lib/profile-api";
 
 export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [pipelineOrder, setPipelineOrder] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -20,7 +23,8 @@ export default function DashboardPage() {
       })
       .catch((err: unknown) =>
         setError(err instanceof Error ? err.message : "Failed to load dashboard"),
-      );
+      )
+      .finally(() => setLoading(false));
   }, []);
 
   const orderedActiveByStage = useMemo(() => {
@@ -35,6 +39,7 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-background px-6 py-10">
+      <JpBackgroundLoad active={loading} label="Loading dashboard…" />
       <div className="mx-auto max-w-4xl">
         <Link href="/" className="text-xs tracking-widest text-muted-foreground uppercase">
           ← Home
@@ -43,6 +48,12 @@ export default function DashboardPage() {
         <p className="mt-2 text-sm text-muted-foreground">All-time job search stats</p>
 
         {error ? <p className="mt-6 text-sm text-red-200">{error}</p> : null}
+
+        {loading ? (
+          <div className="mt-16 flex justify-center">
+            <JpLoader size="md" label="Loading dashboard…" />
+          </div>
+        ) : null}
 
         {stats ? (
           <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

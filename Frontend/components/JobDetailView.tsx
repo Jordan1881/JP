@@ -16,6 +16,7 @@ import { fetchPreferences } from "@/lib/preferences-api";
 import { fetchProfile } from "@/lib/profile-api";
 import { cn } from "@/lib/utils";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { JpLoader } from "@/components/JpLoader";
 import { FormError } from "@/components/FormError";
 import { useToast } from "@/components/ToastProvider";
 import { getErrorMessage } from "@/lib/feedback";
@@ -140,8 +141,8 @@ export function JobDetailView({ jobId }: JobDetailViewProps) {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background text-sm text-muted-foreground">
-        Loading job…
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <JpLoader size="md" label="Loading job…" />
       </div>
     );
   }

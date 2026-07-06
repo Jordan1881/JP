@@ -6,7 +6,7 @@ import { gsap } from "@/lib/gsap";
 import { createJob, importJob } from "@/lib/jobs-api";
 import type { Job } from "@jp/shared-types";
 import { cn } from "@/lib/utils";
-import { TopLoadBar } from "@/components/TopLoadBar";
+import { JpLoadOverlay } from "@/components/JpLoadOverlay";
 import { FormError } from "@/components/FormError";
 import { useToast } from "@/components/ToastProvider";
 import { getErrorMessage } from "@/lib/feedback";
@@ -141,7 +141,10 @@ export function AddJobForm({ onJobAdded }: { onJobAdded?: (job: Job) => void }) 
 
   return (
     <section className="relative overflow-hidden rounded-xl border border-border bg-card/80 backdrop-blur-sm">
-      <TopLoadBar active={importing} />
+      <JpLoadOverlay
+        active={importing || submitting}
+        label={importing ? "Reading posting…" : "Adding job…"}
+      />
       <div className="flex items-start justify-between gap-4 border-b border-border px-6 py-5">
         <div>
           <h2 className="text-xl font-medium tracking-tight text-foreground">

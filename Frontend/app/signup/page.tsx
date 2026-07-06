@@ -12,6 +12,7 @@ import {
   authInputClassName,
 } from "@/components/AuthCard";
 import { useAuth } from "@/components/AuthProvider";
+import { JpLoader } from "@/components/JpLoader";
 import { createAccount, fetchAccount } from "@/lib/account-api";
 import {
   authConfirmSignUp,
@@ -81,7 +82,7 @@ export default function SignupPage() {
   if (mode === "loading" || authLoading) {
     return (
       <AuthCard title="Loading…" subtitle="Checking your session.">
-        <p className="text-sm text-muted-foreground">One moment.</p>
+        <JpLoader size="md" className="py-4" />
       </AuthCard>
     );
   }

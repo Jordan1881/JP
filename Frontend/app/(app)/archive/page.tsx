@@ -3,10 +3,13 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { Job } from "@jp/shared-types";
+import { JpBackgroundLoad } from "@/components/JpBackgroundLoad";
+import { JpLoader } from "@/components/JpLoader";
 import { deleteJob, fetchJobs, restoreJob } from "@/lib/jobs-api";
 
 export default function ArchivePage() {
   const [jobs, setJobs] = useState<Job[]>([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   async function load() {
@@ -14,13 +17,16 @@ export default function ArchivePage() {
   }
 
   useEffect(() => {
-    void load().catch((err: unknown) =>
-      setError(err instanceof Error ? err.message : "Failed to load archive"),
-    );
+    void load()
+      .catch((err: unknown) =>
+        setError(err instanceof Error ? err.message : "Failed to load archive"),
+      )
+      .finally(() => setLoading(false));
   }, []);
 
   return (
     <div className="min-h-screen bg-background px-6 py-10">
+      <JpBackgroundLoad active={loading} label="Loading archive…" />
       <div className="mx-auto max-w-4xl">
         <Link href="/" className="text-xs tracking-widest text-muted-foreground uppercase">
           ← Home
@@ -30,6 +36,11 @@ export default function ArchivePage() {
           Archived applications — manual/no-response entries expire after 30 days.
         </p>
         {error ? <p className="mt-6 text-sm text-red-200">{error}</p> : null}
+        {loading ? (
+          <div className="mt-16 flex justify-center">
+            <JpLoader size="md" label="Loading archive…" />
+          </div>
+        ) : (
         <div className="mt-8 space-y-4">
           {jobs.map((job) => (
             <div
@@ -73,6 +84,7 @@ export default function ArchivePage() {
             <p className="text-sm text-muted-foreground">No archived jobs yet.</p>
           ) : null}
         </div>
+        )}
       </div>
     </div>
   );
