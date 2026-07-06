@@ -4,33 +4,17 @@ import { getIamAuthToken, usesIamDatabaseAuth } from "../db/iam-auth.js";
 import { createPool } from "../db/pool.js";
 import { runMigrations } from "../db/migrate.js";
 import { migrations } from "../db/migrations/index.js";
-import {
-  JobRepository,
-  PostgresJobStore,
-  getDevJobRepository,
-  getDevJobStore,
-} from "../modules/job-repository/index.js";
+import type { JobRepository } from "../modules/job-repository/index.js";
 import type { JobStore } from "../modules/job-repository/index.js";
+import type { UserAccountRepository } from "../modules/user-account/index.js";
+import type { ProfileRepository } from "../modules/profile-repository/index.js";
+import type { UserPreferencesRepository } from "../modules/user-preferences/index.js";
+import type { NotificationCenter } from "../modules/notification-center/index.js";
 import {
-  UserAccountRepository,
-  PostgresUserAccountStore,
-  getDevUserAccountRepository,
-} from "../modules/user-account/index.js";
-import {
-  ProfileRepository,
-  PostgresProfileStore,
-  getDevProfileRepository,
-} from "../modules/profile-repository/index.js";
-import {
-  UserPreferencesRepository,
-  PostgresUserPreferencesStore,
-  getDevUserPreferencesRepository,
-} from "../modules/user-preferences/index.js";
-import {
-  NotificationCenter,
-  PostgresNotificationStore,
-  getDevNotificationCenter,
-} from "../modules/notification-center/index.js";
+  buildPostgresStores,
+  getDevStores,
+  type Stores,
+} from "./composition-root.js";
 
 /**
  * Selects the persistence backend for the monolithic ApiHandler and the
@@ -44,15 +28,6 @@ import {
  * with Aurora auto-pause resume this can make the first request after idle
  * take ~15s (ADR-0002).
  */
-
-interface Stores {
-  jobStore: JobStore;
-  jobRepository: JobRepository;
-  userAccountRepository: UserAccountRepository;
-  profileRepository: ProfileRepository;
-  userPreferencesRepository: UserPreferencesRepository;
-  notificationCenter: NotificationCenter;
-}
 
 let poolPromise: Promise<pg.Pool | null> | null = null;
 let postgresStores: Stores | null = null;
@@ -122,38 +97,10 @@ export function getPool(): Promise<pg.Pool | null> {
   return poolPromise;
 }
 
-function buildPostgresStores(pool: pg.Pool): Stores {
-  const jobStore = new PostgresJobStore(pool);
-  const profileStore = new PostgresProfileStore(pool);
-  const preferencesStore = new PostgresUserPreferencesStore(pool);
-  const notificationStore = new PostgresNotificationStore(pool);
-  return {
-    jobStore,
-    jobRepository: new JobRepository(jobStore),
-    userAccountRepository: new UserAccountRepository(
-      new PostgresUserAccountStore(pool),
-      jobStore,
-      profileStore,
-      preferencesStore,
-      notificationStore,
-    ),
-    profileRepository: new ProfileRepository(profileStore),
-    userPreferencesRepository: new UserPreferencesRepository(preferencesStore),
-    notificationCenter: new NotificationCenter(notificationStore),
-  };
-}
-
 async function getStores(): Promise<Stores> {
   const pool = await getPool();
   if (!pool) {
-    return {
-      jobStore: getDevJobStore(),
-      jobRepository: getDevJobRepository(),
-      userAccountRepository: getDevUserAccountRepository(),
-      profileRepository: getDevProfileRepository(),
-      userPreferencesRepository: getDevUserPreferencesRepository(),
-      notificationCenter: getDevNotificationCenter(),
-    };
+    return getDevStores();
   }
   postgresStores ??= buildPostgresStores(pool);
   return postgresStores;

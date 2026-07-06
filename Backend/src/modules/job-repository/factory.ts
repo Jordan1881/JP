@@ -1,8 +1,7 @@
+import { getDevStores } from "../../services/composition-root.js";
 import { JobRepository } from "./job-repository.js";
 import { InMemoryJobStore } from "./in-memory-store.js";
 import type { JobStore } from "./types.js";
-
-let devStore: InMemoryJobStore | null = null;
 
 export function createJobRepository(
   store: JobStore = new InMemoryJobStore(),
@@ -11,10 +10,9 @@ export function createJobRepository(
 }
 
 export function getDevJobStore(): InMemoryJobStore {
-  devStore ??= new InMemoryJobStore();
-  return devStore;
+  return getDevStores().jobStore as InMemoryJobStore;
 }
 
 export function getDevJobRepository(): JobRepository {
-  return createJobRepository(getDevJobStore());
+  return getDevStores().jobRepository;
 }

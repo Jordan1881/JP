@@ -67,6 +67,13 @@ export {
   getUserPreferencesRepository,
   getNotificationCenter,
 } from "./services/store-provider.js";
+export {
+  getDevStores,
+  resetDevStores,
+  buildDevStores,
+  buildPostgresStores,
+  type Stores,
+} from "./services/composition-root.js";
 export { resolveDatabaseConfig } from "./db/config.js";
 export type { DatabaseConfig } from "./db/config.js";
 export { createPool, getSharedPool } from "./db/pool.js";
