@@ -141,7 +141,14 @@ export class JpCognito extends Construct {
           "cognito-idp:ListUsers",
           "cognito-idp:AdminLinkProviderForUser",
         ],
-        resources: [this.userPool.userPoolArn],
+        // Wildcard avoids CloudFormation circular dependency (user pool ↔ trigger Lambda).
+        resources: [
+          cdk.Stack.of(this).formatArn({
+            service: "cognito-idp",
+            resource: "userpool",
+            resourceName: "*",
+          }),
+        ],
       }),
     );
 
