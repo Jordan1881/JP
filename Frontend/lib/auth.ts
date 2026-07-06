@@ -116,6 +116,38 @@ export async function authFetchUserAttributes() {
   }
 }
 
+/** Name/email for signup — merges Cognito attributes with ID token claims (Google OAuth). */
+export async function authGetProfile(): Promise<{ email?: string; name?: string }> {
+  await fetchAuthSession();
+  const attrs = await authFetchUserAttributes();
+  const record = attrs as Record<string, string | undefined>;
+
+  let email = attrs.email;
+  let name = attrs.name ?? record.fullname;
+
+  try {
+    const session = await fetchAuthSession();
+    const payload = session.tokens?.idToken?.payload;
+    if (payload) {
+      if (!email && typeof payload.email === "string") {
+        email = payload.email;
+      }
+      if (!name && typeof payload.name === "string") {
+        name = payload.name;
+      }
+      if (!name && typeof payload.given_name === "string") {
+        const family =
+          typeof payload.family_name === "string" ? payload.family_name : "";
+        name = `${payload.given_name} ${family}`.trim();
+      }
+    }
+  } catch {
+    // Session not ready — attributes-only fallback above.
+  }
+
+  return { email, name };
+}
+
 export async function authUpdatePassword(
   oldPassword: string,
   newPassword: string,
