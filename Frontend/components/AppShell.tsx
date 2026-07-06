@@ -26,7 +26,32 @@ function scrollToSection(id: string) {
   document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
 }
 
-function NavLink({
+function DesktopNavLink({
+  href,
+  label,
+  active,
+}: {
+  href: string;
+  label: string;
+  active: boolean;
+}) {
+  return (
+    <Link
+      href={href}
+      aria-current={active ? "page" : undefined}
+      className={cn(
+        "text-sm transition-colors",
+        active
+          ? "relative font-medium text-foreground after:absolute after:-bottom-[21px] after:left-0 after:right-0 after:h-0.5 after:bg-foreground"
+          : "text-muted-foreground hover:text-foreground",
+      )}
+    >
+      {label}
+    </Link>
+  );
+}
+
+function MenuNavLink({
   href,
   label,
   active,
@@ -43,16 +68,32 @@ function NavLink({
       onClick={onNavigate}
       aria-current={active ? "page" : undefined}
       className={cn(
-        "block rounded-md px-3 py-2 text-sm transition-colors md:inline-block md:px-0 md:py-0",
+        "block w-full rounded-md px-3 py-2.5 text-sm transition-colors",
         active
-          ? "bg-secondary font-medium text-foreground md:bg-transparent"
-          : "text-muted-foreground hover:bg-secondary hover:text-foreground md:hover:bg-transparent",
-        active &&
-          "md:relative md:after:absolute md:after:-bottom-[21px] md:after:left-0 md:after:right-0 md:after:h-0.5 md:after:bg-foreground",
+          ? "bg-secondary font-medium text-foreground"
+          : "text-muted-foreground hover:bg-secondary hover:text-foreground",
       )}
     >
       {label}
     </Link>
+  );
+}
+
+function MenuButton({
+  label,
+  onClick,
+}: {
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="block w-full rounded-md px-3 py-2.5 text-left text-sm text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+    >
+      {label}
+    </button>
   );
 }
 
@@ -93,7 +134,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <AppLogo showWordmark height={36} />
             <div className="hidden items-center gap-6 md:flex">
               {PRIMARY_NAV.map((item) => (
-                <NavLink
+                <DesktopNavLink
                   key={item.href}
                   href={item.href}
                   label={item.label}
@@ -174,10 +215,12 @@ export function AppShell({ children }: { children: ReactNode }) {
             onClick={() => setMenuOpen(false)}
           />
           <div className="fixed inset-y-0 right-0 z-50 flex w-72 max-w-[85vw] flex-col border-l border-border bg-card shadow-xl">
-            <div className="border-b border-border px-4 py-3 text-sm font-medium">Menu</div>
-            <div className="space-y-1 p-3">
+            <div className="border-b border-border px-4 py-3 text-sm font-medium text-foreground">
+              Menu
+            </div>
+            <nav className="flex flex-col gap-0.5 p-3" aria-label="Main menu">
               {MENU_NAV.map((item) => (
-                <NavLink
+                <MenuNavLink
                   key={item.href}
                   href={item.href}
                   label={item.label}
@@ -187,29 +230,24 @@ export function AppShell({ children }: { children: ReactNode }) {
               ))}
               {isHome ? (
                 <>
-                  <button
-                    type="button"
+                  <div className="my-2 border-t border-border" />
+                  <MenuButton
+                    label="Applications"
                     onClick={() => {
                       scrollToSection("applications");
                       setMenuOpen(false);
                     }}
-                    className="block w-full rounded-md px-3 py-2 text-left text-sm text-muted-foreground hover:bg-secondary hover:text-foreground"
-                  >
-                    Applications
-                  </button>
-                  <button
-                    type="button"
+                  />
+                  <MenuButton
+                    label="Add job"
                     onClick={() => {
                       scrollToSection("add-job");
                       setMenuOpen(false);
                     }}
-                    className="block w-full rounded-md px-3 py-2 text-left text-sm text-muted-foreground hover:bg-secondary hover:text-foreground"
-                  >
-                    Add job
-                  </button>
+                  />
                 </>
               ) : null}
-            </div>
+            </nav>
           </div>
         </>
       ) : null}
