@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import type { ClaudeClient } from "@backend/modules/claude-api-client/index.js";
+import {
+  MockClaudeClient,
+  type ClaudeClient,
+} from "@backend/modules/claude-api-client/index.js";
 import {
   JobImportAgent,
   htmlToText,
@@ -124,5 +127,37 @@ describe("JobImportAgent.importFromText", () => {
     await expect(agent.importFromText("engineer")).rejects.toThrow(
       "Paste more",
     );
+  });
+
+  it("imports Hebrew pasted text when Claude returns prose plus a json fence", async () => {
+    const hebrewPosting = `משרת מפתח/ת Full Stack בחברת טכנולוגיה בע"מ
+מספר משרה: 12345
+אנחנו מחפשים מפתח/ת עם ניסיון ב-React, Node.js ו-TypeScript.
+התפקיד כולל פיתוח מערכות web, עבודה עם צוות מוצר ותחזוקת שירותים קיימים.`;
+
+    const client = new MockClaudeClient(() =>
+      `הנה השדות שחילצתי מהמשרה:
+\`\`\`json
+{
+  "title": "מפתח/ת Full Stack",
+  "company": "חברת טכנולוגיה בע\\"מ",
+  "jobNumber": "12345",
+  "description": "פיתוח מערכות web עם React, Node.js ו-TypeScript."
+}
+\`\`\``,
+    );
+
+    const agent = new JobImportAgent(client);
+    const fields = await agent.importFromText(hebrewPosting);
+
+    expect(fields).toMatchObject({
+      title: "מפתח/ת Full Stack",
+      company: 'חברת טכנולוגיה בע"מ',
+      jobNumber: "12345",
+      description: "פיתוח מערכות web עם React, Node.js ו-TypeScript.",
+    });
+    expect(fields.notes).toContain("pasted text");
+    expect(client.calls).toHaveLength(1);
+    expect(client.calls[0]?.input.messages[0]?.content).toContain("Pasted job description:");
   });
 });
