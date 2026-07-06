@@ -8,7 +8,7 @@ loadEnvConfig(join(dirname(fileURLToPath(import.meta.url)), ".."));
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
-  transpilePackages: ["@jp/shared-types", "@jp/backend"],
+  transpilePackages: ["@jp/shared-types"],
   eslint: {
     ignoreDuringBuilds: true,
   },

@@ -1,10 +1,8 @@
 import { NextResponse } from "next/server";
 
 /**
- * Production persistence path (ADR-0004): Amplify-hosted Next.js API routes
- * proxy to the deployed API Gateway + ApiHandler Lambda, which is the only
- * compute that can reach Aurora inside the VPC. When no API base URL is
- * configured (local dev), routes fall back to the in-memory dev stores.
+ * Production and local dev (ADR-0004): Amplify-hosted Next.js API routes proxy
+ * to API Gateway + ApiHandler Lambda. Frontend does not import @jp/backend.
  *
  * JP_API_URL (server-only, preferred) or NEXT_PUBLIC_API_URL, e.g.
  * https://xyz.execute-api.us-east-1.amazonaws.com/v1
@@ -20,13 +18,16 @@ export function isBackendConfigured(): boolean {
 
 const FORWARDED_HEADERS = ["content-type", "x-user-id", "authorization"];
 
+const MISSING_API_URL_MESSAGE =
+  "JP_API_URL is not configured. Set it in .env.local at the repo root (see docs/infra/deploy-runbook.md).";
+
 export async function proxyToBackend(
   request: Request,
   backendPath: string,
 ): Promise<NextResponse> {
   const base = apiBaseUrl();
   if (!base) {
-    throw new Error("Backend API URL is not configured");
+    return NextResponse.json({ error: MISSING_API_URL_MESSAGE }, { status: 503 });
   }
 
   const { search } = new URL(request.url);
@@ -42,30 +43,18 @@ export async function proxyToBackend(
   const body =
     method === "GET" || method === "HEAD" ? undefined : await request.text();
 
-  const response = await fetch(`${base}${backendPath}${search}`, {
-    method,
-    headers,
-    body: body || undefined,
-  });
-
-  const text = await response.text();
-  return new NextResponse(text, {
-    status: response.status,
-    headers: { "Content-Type": "application/json" },
-  });
-}
-
-/** Proxy when a backend is configured; otherwise run the local dev fallback. */
-export async function proxyOr(
-  request: Request,
-  backendPath: string,
-  fallback: () => Promise<NextResponse>,
-): Promise<NextResponse> {
-  if (!isBackendConfigured()) {
-    return fallback();
-  }
   try {
-    return await proxyToBackend(request, backendPath);
+    const response = await fetch(`${base}${backendPath}${search}`, {
+      method,
+      headers,
+      body: body || undefined,
+    });
+
+    const text = await response.text();
+    return new NextResponse(text, {
+      status: response.status,
+      headers: { "Content-Type": "application/json" },
+    });
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Backend request failed";
