@@ -239,8 +239,8 @@ export function AddJobForm({ onJobAdded }: { onJobAdded?: (job: Job) => void }) 
 
           <p className="text-xs text-muted-foreground">
             {importMode === "url"
-              ? "Prefills title, company, and description. Some sites (LinkedIn, defense contractors) block this — use Paste text for those."
-              : "Works for any posting: copy the job description from your browser and paste it here."}
+              ? "Prefills title, company, and description. LinkedIn and other sites block automated imports — switch to Paste text, copy the posting from your browser, and import from there."
+              : "Best for LinkedIn and other protected sites: open the posting in your browser, copy the full description, and paste it here."}
           </p>
         </div>
 

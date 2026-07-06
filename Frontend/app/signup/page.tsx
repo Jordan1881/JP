@@ -11,6 +11,7 @@ import {
   AuthField,
   authInputClassName,
 } from "@/components/AuthCard";
+import { AuthDivider, GoogleSignInButton } from "@/components/GoogleSignInButton";
 import { useAuth } from "@/components/AuthProvider";
 import { JpLoader } from "@/components/JpLoader";
 import { createAccount, fetchAccount } from "@/lib/account-api";
@@ -139,12 +140,12 @@ export default function SignupPage() {
     ? "Confirm your email"
     : isComplete
       ? "Finish your account"
-      : "Create your account";
+      : "Register";
   const subtitle = needsConfirmation
     ? "Enter the verification code sent to your email."
     : isComplete
       ? "You're signed in. Accept the terms to start using JP."
-      : "Track applications with a personal JP account.";
+      : "Create your JP account with email or Google.";
 
   return (
     <AuthCard
@@ -165,6 +166,12 @@ export default function SignupPage() {
         )
       }
     >
+      {!needsConfirmation && !isComplete ? (
+        <>
+          <GoogleSignInButton label="Register with Google" />
+          <AuthDivider />
+        </>
+      ) : null}
       <form onSubmit={handleSubmit} className="space-y-5">
         <AuthError message={error} />
 
@@ -232,7 +239,7 @@ export default function SignupPage() {
             ? "Verify and continue"
             : isComplete
               ? "Finish setup"
-              : "Create account"}
+              : "Register with email"}
         </AuthButton>
       </form>
     </AuthCard>

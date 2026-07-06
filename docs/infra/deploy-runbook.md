@@ -28,6 +28,7 @@ Under **Hosting** → **Environment variables** (branch `main`), confirm Cognito
 | `NEXT_PUBLIC_COGNITO_USER_POOL_ID` | Cognito user pool |
 | `NEXT_PUBLIC_COGNITO_CLIENT_ID` | Cognito app client |
 | `NEXT_PUBLIC_COGNITO_REGION` | e.g. `us-east-1` |
+| `NEXT_PUBLIC_COGNITO_DOMAIN` | OAuth domain for Google sign-in (see [google-oauth.md](./google-oauth.md)) |
 
 Agents need Anthropic credentials — see [anthropic-secret.md](./anthropic-secret.md) for `ANTHROPIC_API_KEY` or Secrets Manager wiring in Lambda (frontend only needs public Cognito IDs and `JP_API_URL`).
 

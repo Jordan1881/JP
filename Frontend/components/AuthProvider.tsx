@@ -28,8 +28,15 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-const PUBLIC_PATHS = new Set(["/login", "/signup", "/terms"]);
-const AUTH_GATE_PATHS = new Set(["/login", "/signup", "/terms", "/accept-terms"]);
+const PUBLIC_PATHS = new Set(["/login", "/signup", "/register", "/terms", "/auth/callback"]);
+const AUTH_GATE_PATHS = new Set([
+  "/login",
+  "/signup",
+  "/register",
+  "/terms",
+  "/accept-terms",
+  "/auth/callback",
+]);
 
 function applyPostAuthRouting(
   pathname: string,
