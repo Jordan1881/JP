@@ -22,4 +22,4 @@ export {
   markAllNotificationsRead,
 } from "./notifications.js";
 export { getDashboardStats } from "./dashboard.js";
-export { runUserSweep } from "./sweep.js";
+export { runUserSweep, type SweepDeps } from "./sweep.js";
