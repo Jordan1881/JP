@@ -120,7 +120,7 @@ export class JpCognito extends Construct {
    */
   private attachFederatedAccountLinking(): void {
     const linkFn = new lambdaNodejs.NodejsFunction(this, "PreSignUpLink", {
-      entry: join(__dirname, "../lambdas/cognito-pre-sign-up-link.ts"),
+      entry: join(__dirname, "../../lambdas/cognito-pre-sign-up-link.ts"),
       handler: "handler",
       runtime: lambda.Runtime.NODEJS_22_X,
       timeout: cdk.Duration.seconds(10),
