@@ -1,14 +1,25 @@
 import type { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
 import type { UpdateProfileInput } from "@jp/shared-types";
 import { getUserId } from "./auth.js";
-import { createClaudeClient } from "../modules/claude-api-client/index.js";
-import { ProfileInterviewAgent } from "../modules/profile-interview-agent/index.js";
-import { getProfileRepository } from "../services/store-provider.js";
+import {
+  AgentUseCaseError,
+  createAgentUseCaseDeps,
+  profileInterviewTurn,
+} from "../application/agents/index.js";
+import { getJobRepository, getProfileRepository } from "../services/store-provider.js";
 
 const JSON_HEADERS = { "Content-Type": "application/json" };
 
 function response(statusCode: number, body: unknown): APIGatewayProxyResult {
   return { statusCode, headers: JSON_HEADERS, body: JSON.stringify(body) };
+}
+
+async function getAgentUseCaseDeps() {
+  const [jobRepository, profileRepository] = await Promise.all([
+    getJobRepository(),
+    getProfileRepository(),
+  ]);
+  return createAgentUseCaseDeps({ jobRepository, profileRepository });
 }
 
 export async function getProfileHandler(
@@ -53,58 +64,21 @@ export async function profileInterviewHandler(
   }
 
   try {
-    const userId = getUserId(event);
-    const repository = (await getProfileRepository());
-    const existing = await repository.get(userId);
-    if (repository.isComplete(existing)) {
-      return response(400, { error: "Profile interview already completed" });
-    }
-
     const body = JSON.parse(event.body) as {
       messages: Array<{ role: "user" | "assistant"; content: string }>;
       completedTopics: string[];
       answer?: string;
     };
-
-    const agent = new ProfileInterviewAgent(createClaudeClient());
-    const messages = [...body.messages];
-    let completedTopics = [...body.completedTopics];
-
-    if (body.answer?.trim()) {
-      messages.push({ role: "user", content: body.answer.trim() });
-      completedTopics = await agent.updateCompletedTopics(
-        messages,
-        completedTopics,
-      );
-    }
-
-    if (agent.isInterviewComplete(completedTopics)) {
-      const profile = await repository.saveInterviewProfile(
-        userId,
-        await agent.buildProfileFromTranscript(messages),
-      );
-      return response(200, {
-        complete: true,
-        profile,
-        messages: [
-          ...messages,
-          {
-            role: "assistant",
-            content: "Your profile is saved. You can edit it anytime on the Profile page.",
-          },
-        ],
-        completedTopics,
-      });
-    }
-
-    const question = await agent.getNextQuestion(messages, completedTopics);
-    const nextMessages = [...messages, { role: "assistant" as const, content: question }];
-    return response(200, {
-      complete: false,
-      messages: nextMessages,
-      completedTopics,
-    });
+    const result = await profileInterviewTurn(
+      await getAgentUseCaseDeps(),
+      getUserId(event),
+      body,
+    );
+    return response(200, result);
   } catch (error) {
+    if (error instanceof AgentUseCaseError) {
+      return response(error.statusCode, { error: error.message });
+    }
     const message =
       error instanceof Error ? error.message : "Profile interview failed";
     return response(500, { error: message });

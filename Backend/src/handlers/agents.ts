@@ -1,11 +1,12 @@
 import type { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
 import type { AgentChatMessage } from "@jp/shared-types";
 import { getUserId } from "./auth.js";
-import { createClaudeClient } from "../modules/claude-api-client/index.js";
 import {
-  CoverLetterAgent,
-  JobAnnouncementAgent,
-} from "../modules/generation-agents/index.js";
+  AgentUseCaseError,
+  announcementWorkflow,
+  coverLetterWorkflow,
+  createAgentUseCaseDeps,
+} from "../application/agents/index.js";
 import { getJobRepository } from "../services/store-provider.js";
 import { getProfileRepository } from "../services/store-provider.js";
 
@@ -20,13 +21,23 @@ function jobIdFromPath(path: string): string | null {
   return match?.[1] ?? null;
 }
 
-async function requireCompleteProfile(userId: string) {
-  const repository = (await getProfileRepository());
-  const profile = await repository.get(userId);
-  if (!repository.isComplete(profile) || !profile) {
-    throw new Error("Complete your profile interview before generating content");
+async function getAgentUseCaseDeps() {
+  const [jobRepository, profileRepository] = await Promise.all([
+    getJobRepository(),
+    getProfileRepository(),
+  ]);
+  return createAgentUseCaseDeps({ jobRepository, profileRepository });
+}
+
+function handleUseCaseError(
+  error: unknown,
+  fallbackMessage: string,
+): APIGatewayProxyResult {
+  if (error instanceof AgentUseCaseError) {
+    return response(error.statusCode, { error: error.message });
   }
-  return profile;
+  const message = error instanceof Error ? error.message : fallbackMessage;
+  return response(400, { error: message });
 }
 
 export async function coverLetterHandler(
@@ -38,34 +49,20 @@ export async function coverLetterHandler(
   }
 
   try {
-    const userId = getUserId(event);
-    const job = await (await getJobRepository()).getById(userId, jobId);
-    if (!job) {
-      return response(404, { error: "Job not found" });
-    }
-
-    const profile = await requireCompleteProfile(userId);
     const body = JSON.parse(event.body) as {
       action: "generate" | "revise";
       instruction?: string;
       messages?: AgentChatMessage[];
     };
-    const client = createClaudeClient();
-    const agent = new CoverLetterAgent(client);
-
-    const draft =
-      body.action === "revise" && job.coverLetter && body.instruction
-        ? await agent.revise(job.coverLetter, body.instruction, body.messages ?? [])
-        : await agent.generate(job, profile);
-
-    const updated = await (await getJobRepository()).patch(userId, jobId, {
-      coverLetter: draft,
-    });
-    return response(200, { job: updated.job, draft });
+    const result = await coverLetterWorkflow(
+      await getAgentUseCaseDeps(),
+      getUserId(event),
+      jobId,
+      body,
+    );
+    return response(200, result);
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Cover letter generation failed";
-    return response(400, { error: message });
+    return handleUseCaseError(error, "Cover letter generation failed");
   }
 }
 
@@ -78,36 +75,19 @@ export async function announcementHandler(
   }
 
   try {
-    const userId = getUserId(event);
-    const job = await (await getJobRepository()).getById(userId, jobId);
-    if (!job) {
-      return response(404, { error: "Job not found" });
-    }
-    if (job.currentStage !== "Accepted") {
-      return response(400, { error: "Announcement is only available for Accepted jobs" });
-    }
-
-    const profile = await requireCompleteProfile(userId);
     const body = JSON.parse(event.body) as {
       action: "generate" | "revise";
       instruction?: string;
       messages?: AgentChatMessage[];
     };
-    const client = createClaudeClient();
-    const agent = new JobAnnouncementAgent(client);
-
-    const draft =
-      body.action === "revise" && job.announcement && body.instruction
-        ? await agent.revise(job.announcement, body.instruction, body.messages ?? [])
-        : await agent.generate(job, profile);
-
-    const updated = await (await getJobRepository()).patch(userId, jobId, {
-      announcement: draft,
-    });
-    return response(200, { job: updated.job, draft });
+    const result = await announcementWorkflow(
+      await getAgentUseCaseDeps(),
+      getUserId(event),
+      jobId,
+      body,
+    );
+    return response(200, result);
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Announcement generation failed";
-    return response(400, { error: message });
+    return handleUseCaseError(error, "Announcement generation failed");
   }
 }
