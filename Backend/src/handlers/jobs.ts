@@ -1,5 +1,15 @@
 import type { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
 import type { ListJobsQuery } from "@jp/shared-types";
+import {
+  archiveJob,
+  createJob,
+  deleteJob,
+  getJob,
+  importJob,
+  listJobs,
+  patchJob,
+  restoreJob,
+} from "../application/jobs/index.js";
 import { getUserId } from "./auth.js";
 import { createClaudeClient } from "../modules/claude-api-client/index.js";
 import { JobImportAgent } from "../modules/job-import-agent/index.js";
@@ -30,19 +40,6 @@ function listQuery(event: APIGatewayProxyEvent): ListJobsQuery {
   };
 }
 
-export async function listJobsHandler(
-  event: APIGatewayProxyEvent,
-): Promise<APIGatewayProxyResult> {
-  try {
-    const repository = (await getJobRepository());
-    const jobs = await repository.list(getUserId(event), listQuery(event));
-    return response(200, { jobs });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to list jobs";
-    return response(500, { error: message });
-  }
-}
-
 const IMPORT_CLIENT_ERROR_MARKERS = [
   "required",
   "Invalid",
@@ -56,6 +53,22 @@ const IMPORT_CLIENT_ERROR_MARKERS = [
   "http or https",
 ];
 
+export async function listJobsHandler(
+  event: APIGatewayProxyEvent,
+): Promise<APIGatewayProxyResult> {
+  try {
+    const jobs = await listJobs(
+      getUserId(event),
+      listQuery(event),
+      await getJobRepository(),
+    );
+    return response(200, { jobs });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Failed to list jobs";
+    return response(500, { error: message });
+  }
+}
+
 export async function importJobFromUrlHandler(
   event: APIGatewayProxyEvent,
 ): Promise<APIGatewayProxyResult> {
@@ -66,16 +79,7 @@ export async function importJobFromUrlHandler(
   try {
     const body = JSON.parse(event.body) as { url?: string; text?: string };
     const agent = new JobImportAgent(createClaudeClient());
-
-    let fields;
-    if (body.text?.trim()) {
-      fields = await agent.importFromText(body.text);
-    } else if (body.url?.trim()) {
-      fields = await agent.importFromUrl(body.url);
-    } else {
-      return response(400, { error: "A job URL or pasted text is required" });
-    }
-
+    const fields = await importJob(body, agent);
     return response(200, { fields });
   } catch (error) {
     const message =
@@ -98,8 +102,11 @@ export async function createJobHandler(
 
   try {
     const input = JSON.parse(event.body);
-    const repository = (await getJobRepository());
-    const job = await repository.create(getUserId(event), input);
+    const job = await createJob(
+      getUserId(event),
+      input,
+      await getJobRepository(),
+    );
     return response(201, { job });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to create job";
@@ -119,8 +126,7 @@ export async function getJobHandler(
   }
 
   try {
-    const repository = (await getJobRepository());
-    const job = await repository.getById(getUserId(event), jobId);
+    const job = await getJob(getUserId(event), jobId, await getJobRepository());
     if (!job) {
       return response(404, { error: "Job not found" });
     }
@@ -144,8 +150,12 @@ export async function patchJobHandler(
 
   try {
     const input = JSON.parse(event.body);
-    const repository = (await getJobRepository());
-    const result = await repository.patch(getUserId(event), jobId, input);
+    const result = await patchJob(
+      getUserId(event),
+      jobId,
+      input,
+      await getJobRepository(),
+    );
     return response(200, result);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to update job";
@@ -164,7 +174,7 @@ export async function deleteJobHandler(
   }
 
   try {
-    await (await getJobRepository()).deletePermanent(getUserId(event), jobId);
+    await deleteJob(getUserId(event), jobId, await getJobRepository());
     return response(200, { deleted: true });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to delete job";
@@ -182,12 +192,12 @@ export async function archiveJobHandler(
 
   try {
     const body = event.body ? JSON.parse(event.body) : {};
-    const repository = (await getJobRepository());
-    const userId = getUserId(event);
-    const job =
-      body.reason === "no_response"
-        ? await repository.archiveNoResponse(userId, jobId)
-        : await repository.archiveManual(userId, jobId);
+    const job = await archiveJob(
+      getUserId(event),
+      jobId,
+      body,
+      await getJobRepository(),
+    );
     return response(200, { job });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to archive job";
@@ -204,7 +214,11 @@ export async function restoreJobHandler(
   }
 
   try {
-    const job = await (await getJobRepository()).restore(getUserId(event), jobId);
+    const job = await restoreJob(
+      getUserId(event),
+      jobId,
+      await getJobRepository(),
+    );
     return response(200, { job });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to restore job";
