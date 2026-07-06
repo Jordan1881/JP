@@ -1,47 +1,21 @@
-import type { AgentChatMessage, Job } from "@jp/shared-types";
 import type { AgentUseCaseDeps } from "./deps.js";
-import { AgentUseCaseError } from "./errors.js";
-import { requireCompleteProfile } from "./gates.js";
+import {
+  contentGenerationWorkflow,
+  type ContentGenerationInput,
+  type ContentGenerationResult,
+} from "./content-generation.js";
 
-export interface CoverLetterInput {
-  action: "generate" | "revise";
-  instruction?: string;
-  messages?: AgentChatMessage[];
-}
-
-export interface CoverLetterResult {
-  job: Job;
-  draft: string;
-}
+export type CoverLetterInput = ContentGenerationInput;
+export type CoverLetterResult = ContentGenerationResult;
 
 export async function coverLetterWorkflow(
   deps: Pick<
     AgentUseCaseDeps,
-    "jobRepository" | "profileRepository" | "createCoverLetterAgent"
+    "jobRepository" | "profileRepository" | "createContentGenerationAgent"
   >,
   userId: string,
   jobId: string,
   input: CoverLetterInput,
 ): Promise<CoverLetterResult> {
-  const job = await deps.jobRepository.getById(userId, jobId);
-  if (!job) {
-    throw new AgentUseCaseError("Job not found", 404);
-  }
-
-  const profile = await requireCompleteProfile(deps.profileRepository, userId);
-  const agent = deps.createCoverLetterAgent();
-
-  const draft =
-    input.action === "revise" && job.coverLetter && input.instruction
-      ? await agent.revise(
-          job.coverLetter,
-          input.instruction,
-          input.messages ?? [],
-        )
-      : await agent.generate(job, profile);
-
-  const updated = await deps.jobRepository.patch(userId, jobId, {
-    coverLetter: draft,
-  });
-  return { job: updated.job, draft };
+  return contentGenerationWorkflow("cover_letter", deps, userId, jobId, input);
 }

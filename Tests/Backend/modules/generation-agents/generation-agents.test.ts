@@ -1,12 +1,21 @@
 import { describe, expect, it } from "vitest";
 import type { ClaudeClient } from "@backend/modules/claude-api-client/index.js";
 import {
+  CONTENT_KIND_PROFILES,
+  ContentGenerationAgent,
   CoverLetterAgent,
   JobAnnouncementAgent,
 } from "@backend/modules/generation-agents/index.js";
 
 class StubClaudeClient implements ClaudeClient {
-  async complete(): Promise<string> {
+  lastInput: { system: string; messages: Array<{ role: string; content: string }> } | null =
+    null;
+
+  async complete(
+    _tier: string,
+    input: { system: string; messages: Array<{ role: string; content: string }> },
+  ): Promise<string> {
+    this.lastInput = input;
     return "Draft based on your input: profile data";
   }
 }
@@ -40,14 +49,31 @@ const job = {
 
 describe("Generation agents", () => {
   it("generates cover letter with mocked Claude client", async () => {
-    const agent = new CoverLetterAgent(new StubClaudeClient());
+    const client = new StubClaudeClient();
+    const agent = new CoverLetterAgent(client);
     const draft = await agent.generate(job, profile);
     expect(draft).toContain("Draft based on your input");
+    expect(client.lastInput?.system).toBe(
+      CONTENT_KIND_PROFILES.cover_letter.generateSystem,
+    );
   });
 
   it("generates announcement for accepted jobs", async () => {
-    const agent = new JobAnnouncementAgent(new StubClaudeClient());
+    const client = new StubClaudeClient();
+    const agent = new JobAnnouncementAgent(client);
     const draft = await agent.generate(job, profile);
     expect(draft.length).toBeGreaterThan(0);
+    expect(client.lastInput?.system).toBe(
+      CONTENT_KIND_PROFILES.announcement.generateSystem,
+    );
+  });
+
+  it("uses content kind profiles via ContentGenerationAgent", async () => {
+    const client = new StubClaudeClient();
+    const agent = new ContentGenerationAgent(client, "cover_letter");
+    await agent.revise("Old draft", "Make it shorter");
+    expect(client.lastInput?.system).toBe(
+      CONTENT_KIND_PROFILES.cover_letter.reviseSystem,
+    );
   });
 });
