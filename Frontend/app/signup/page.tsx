@@ -17,7 +17,7 @@ import { JpLoader } from "@/components/JpLoader";
 import { createAccount, fetchAccount } from "@/lib/account-api";
 import {
   authConfirmSignUp,
-  authFetchUserAttributes,
+  authGetProfile,
   authSignIn,
   authSignUp,
   formatCognitoError,
@@ -36,6 +36,7 @@ export default function SignupPage() {
   const [code, setCode] = useState("");
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [needsConfirmation, setNeedsConfirmation] = useState(false);
+  const [profileFromOAuth, setProfileFromOAuth] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -61,9 +62,10 @@ export default function SignupPage() {
         return;
       }
 
-      const attributes = await authFetchUserAttributes();
-      setEmail(attributes.email ?? "");
-      setName(attributes.name ?? "");
+      const profile = await authGetProfile();
+      setEmail(profile.email ?? "");
+      setName(profile.name ?? "");
+      setProfileFromOAuth(Boolean(profile.email));
       setMode("complete");
     }
 
@@ -177,24 +179,40 @@ export default function SignupPage() {
 
         {!needsConfirmation ? (
           <>
-            <AuthField label="Name">
-              <input
-                className={authInputClassName}
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-              />
-            </AuthField>
-            <AuthField label="Email">
-              <input
-                type="email"
-                className={authInputClassName}
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                readOnly={isComplete}
-                required
-              />
-            </AuthField>
+            {!isComplete || !profileFromOAuth ? (
+              <AuthField label="Name">
+                <input
+                  className={authInputClassName}
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  readOnly={isComplete && profileFromOAuth}
+                  required
+                />
+              </AuthField>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                Signed in as{" "}
+                <span className="font-medium text-foreground">{name}</span>
+                {email ? (
+                  <>
+                    {" "}
+                    (<span className="text-foreground">{email}</span>)
+                  </>
+                ) : null}
+              </p>
+            )}
+            {!isComplete || !profileFromOAuth ? (
+              <AuthField label="Email">
+                <input
+                  type="email"
+                  className={authInputClassName}
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  readOnly={isComplete && profileFromOAuth && Boolean(email)}
+                  required
+                />
+              </AuthField>
+            ) : null}
             {!isComplete ? (
               <AuthField label="Password">
                 <input
