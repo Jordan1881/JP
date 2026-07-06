@@ -62,22 +62,27 @@ jobs:
       E2E_BASE_URL: http://localhost:3000
     steps:
       - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 10.4.1
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: pnpm
       - name: Check E2E credentials
         id: e2e
         run: |
           if [ -z "${{ secrets.E2E_EMAIL }}" ] || [ -z "${{ secrets.E2E_PASSWORD }}" ]; then
             echo "skip=true" >> "$GITHUB_OUTPUT"
             echo "Skipping local E2E: E2E_EMAIL or E2E_PASSWORD is not configured."
+          elif [ -z "${{ secrets.JP_API_URL }}" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "Skipping local E2E: JP_API_URL is not configured."
           else
             echo "skip=false" >> "$GITHUB_OUTPUT"
           fi
+      - uses: pnpm/action-setup@v4
+        if: steps.e2e.outputs.skip != 'true'
+        with:
+          version: 10.4.1
+      - uses: actions/setup-node@v4
+        if: steps.e2e.outputs.skip != 'true'
+        with:
+          node-version: 22
+          cache: pnpm
       - run: pnpm install --frozen-lockfile
         if: steps.e2e.outputs.skip != 'true'
       - name: Apply database migrations
@@ -102,13 +107,6 @@ jobs:
       E2E_BASE_URL: https://main.dbkqz2plarhlv.amplifyapp.com
     steps:
       - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 10.4.1
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: pnpm
       - name: Check E2E credentials
         id: e2e
         run: |
@@ -118,6 +116,15 @@ jobs:
           else
             echo "skip=false" >> "$GITHUB_OUTPUT"
           fi
+      - uses: pnpm/action-setup@v4
+        if: steps.e2e.outputs.skip != 'true'
+        with:
+          version: 10.4.1
+      - uses: actions/setup-node@v4
+        if: steps.e2e.outputs.skip != 'true'
+        with:
+          node-version: 22
+          cache: pnpm
       - run: pnpm install --frozen-lockfile
         if: steps.e2e.outputs.skip != 'true'
       - name: Install Playwright browsers
