@@ -1,19 +1,12 @@
-import { runDailySweep, LOCAL_DEV_USER_ID } from "@jp/backend";
-import { NextResponse } from "next/server";
+import { mapSweepError, runUserSweep } from "@jp/backend";
 import { proxyOr } from "@/lib/server/backend-proxy";
-
-function getUserId(request: Request): string {
-  return request.headers.get("x-user-id") ?? LOCAL_DEV_USER_ID;
-}
+import { getLocalUserId } from "@/lib/server/local-user";
+import { handleRoute } from "@/lib/server/route-adapter";
 
 export async function POST(request: Request) {
-  return proxyOr(request, "/sweep", async () => {
-    try {
-      const result = await runDailySweep(getUserId(request));
-      return NextResponse.json(result);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Sweep failed";
-      return NextResponse.json({ error: message }, { status: 500 });
-    }
-  });
+  return proxyOr(request, "/sweep", () =>
+    handleRoute(() => runUserSweep(getLocalUserId(request)), {
+      mapError: mapSweepError,
+    }),
+  );
 }

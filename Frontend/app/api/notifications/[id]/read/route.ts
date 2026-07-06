@@ -1,27 +1,29 @@
-import { getDevNotificationCenter, LOCAL_DEV_USER_ID } from "@jp/backend";
-import { NextResponse } from "next/server";
+import {
+  getDevNotificationCenter,
+  mapNotificationsError,
+  markNotificationRead,
+} from "@jp/backend";
 import { proxyOr } from "@/lib/server/backend-proxy";
-
-function getUserId(request: Request): string {
-  return request.headers.get("x-user-id") ?? LOCAL_DEV_USER_ID;
-}
+import { getLocalUserId } from "@/lib/server/local-user";
+import { handleRoute } from "@/lib/server/route-adapter";
 
 export async function POST(
   request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
   const { id } = await context.params;
-  return proxyOr(request, `/notifications/${id}/read`, async () => {
-    try {
-      const notification = await getDevNotificationCenter().markRead(
-        getUserId(request),
-        id,
-      );
-      return NextResponse.json({ notification });
-    } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "Failed to update notification";
-      return NextResponse.json({ error: message }, { status: 400 });
-    }
-  });
+  return proxyOr(request, `/notifications/${id}/read`, () =>
+    handleRoute(
+      () =>
+        markNotificationRead(
+          getDevNotificationCenter(),
+          getLocalUserId(request),
+          id,
+        ),
+      {
+        mapError: (error) =>
+          mapNotificationsError(error, "Failed to update notification", 400),
+      },
+    ),
+  );
 }
