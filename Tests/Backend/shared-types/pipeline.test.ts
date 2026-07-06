@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Job } from "@jp/shared-types";
-import { searchAndFilterJobs } from "@backend/modules/search-filter-engine/index.js";
+import { searchAndFilterJobs } from "@jp/shared-types";
 
 const jobs: Job[] = [
   {

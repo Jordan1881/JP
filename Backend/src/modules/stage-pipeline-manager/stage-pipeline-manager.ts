@@ -4,10 +4,18 @@ import {
   resolvePipelineStages,
   TERMINAL_STAGES,
   type Job,
+  type StageList,
   type TerminalStage,
 } from "@jp/shared-types";
 
 export { buildStageFilterOptions, getDisplayStages, resolvePipelineStages };
+
+export function assertStageInPipeline(stage: string, stageList: StageList): void {
+  const allowed = resolvePipelineStages(stageList);
+  if (!allowed.includes(stage)) {
+    throw new Error(`Unknown stage: ${stage}`);
+  }
+}
 
 export interface TerminalStageEvent {
   jobId: string;
@@ -28,10 +36,15 @@ export function applyStageChange(
   job: Job,
   nextStage: string,
   now: string = new Date().toISOString(),
+  stageList?: StageList,
 ): StageChangeResult {
   const stage = nextStage.trim();
   if (!stage) {
     throw new Error("Stage is required");
+  }
+
+  if (stageList !== undefined) {
+    assertStageInPipeline(stage, stageList);
   }
 
   const updatedJob: Job = {

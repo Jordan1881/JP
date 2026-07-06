@@ -41,7 +41,7 @@ JP-Job-Player/
 ├── Backend/
 │   ├── src/
 │   │   ├── modules/           # job-repository, stage-pipeline-manager, archive-lifecycle-manager,
-│   │   │                       # staleness-scheduler, notification-center, search-filter-engine,
+│   │   │                       # staleness-scheduler, notification-center,
 │   │   │                       # profile-repository, user-account, profile-interview-agent,
 │   │   │                       # cover-letter-agent, job-announcement-agent, claude-api-client,
 │   │   │                       # user-preferences, dashboard-analytics
