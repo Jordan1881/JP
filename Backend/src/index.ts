@@ -53,8 +53,12 @@ export {
 export { createClaudeClient } from "./modules/claude-api-client/index.js";
 export { ProfileInterviewAgent } from "./modules/profile-interview-agent/index.js";
 export {
+  ContentGenerationAgent,
   CoverLetterAgent,
   JobAnnouncementAgent,
+  CONTENT_KIND_PROFILES,
+  type ContentKind,
+  type ContentKindProfile,
 } from "./modules/generation-agents/index.js";
 export { JobImportAgent } from "./modules/job-import-agent/index.js";
 export { runDailySweep } from "./services/sweep-service.js";

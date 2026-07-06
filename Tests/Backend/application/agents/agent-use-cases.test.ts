@@ -6,8 +6,7 @@ import {
   type ClaudeCompletionInput,
 } from "@backend/modules/claude-api-client/index.js";
 import {
-  CoverLetterAgent,
-  JobAnnouncementAgent,
+  ContentGenerationAgent,
 } from "@backend/modules/generation-agents/index.js";
 import { JobRepository, InMemoryJobStore } from "@backend/modules/job-repository/index.js";
 import {
@@ -79,8 +78,7 @@ function createDeps(
   return {
     jobRepository,
     profileRepository,
-    createCoverLetterAgent: () => new CoverLetterAgent(client),
-    createAnnouncementAgent: () => new JobAnnouncementAgent(client),
+    createContentGenerationAgent: (kind) => new ContentGenerationAgent(client, kind),
     createProfileInterviewAgent: () => new ProfileInterviewAgent(client),
   };
 }

@@ -6,6 +6,12 @@ export {
   type ProfileInterviewTurnResult,
 } from "./profile-interview-turn.js";
 export {
+  contentGenerationWorkflow,
+  type ContentGenerationInput,
+  type ContentGenerationResult,
+  type ContentWorkflowKind,
+} from "./content-generation.js";
+export {
   coverLetterWorkflow,
   type CoverLetterInput,
   type CoverLetterResult,
