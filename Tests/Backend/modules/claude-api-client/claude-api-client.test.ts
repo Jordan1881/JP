@@ -246,6 +246,23 @@ describe("parseStructuredOutput", () => {
     });
   });
 
+  it("parses JSON wrapped in prose and markdown", () => {
+    const raw =
+      'Here is the result:\n```json\n{"title":"Engineer","company":"Acme"}\n```\nDone.';
+    expect(parseStructuredOutput<{ title: string; company: string }>(raw)).toEqual({
+      title: "Engineer",
+      company: "Acme",
+    });
+  });
+
+  it("parses a bare JSON object embedded in prose", () => {
+    const raw = 'Extracted: {"title":"PM","company":"Co"} from the posting.';
+    expect(parseStructuredOutput<{ title: string }>(raw)).toEqual({
+      title: "PM",
+      company: "Co",
+    });
+  });
+
   it("throws on invalid JSON", () => {
     expect(() => parseStructuredOutput("not json")).toThrow("not valid JSON");
   });

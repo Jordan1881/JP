@@ -162,19 +162,36 @@ export function createClaudeClient(apiKey = process.env.ANTHROPIC_API_KEY): Clau
 }
 
 /**
- * Parse structured JSON from Claude text or tool-use output (e.g. save_profile_data).
- * Strips optional markdown fences before parsing.
+ * Parse structured JSON from Claude text output.
+ * Handles markdown fences, prose wrappers, and embedded JSON objects.
  */
 export function parseStructuredOutput<T>(raw: string): T {
   const trimmed = raw.trim();
-  const fenced = trimmed.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
-  const jsonText = (fenced?.[1] ?? trimmed).trim();
+  const fenced = trimmed.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+  const candidates = [
+    fenced?.[1]?.trim(),
+    trimmed,
+    extractJsonObject(trimmed),
+  ].filter((value): value is string => Boolean(value));
 
-  try {
-    return JSON.parse(jsonText) as T;
-  } catch {
-    throw new Error("Claude structured output is not valid JSON");
+  for (const jsonText of candidates) {
+    try {
+      return JSON.parse(jsonText) as T;
+    } catch {
+      // try next candidate
+    }
   }
+
+  throw new Error("Claude structured output is not valid JSON");
+}
+
+function extractJsonObject(text: string): string | null {
+  const start = text.indexOf("{");
+  const end = text.lastIndexOf("}");
+  if (start < 0 || end <= start) {
+    return null;
+  }
+  return text.slice(start, end + 1);
 }
 
 

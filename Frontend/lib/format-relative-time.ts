@@ -1,10 +1,12 @@
+import { UI_LOCALE } from "./locale";
+
 export function formatRelativeTime(iso: string, now: Date = new Date()): string {
   const date = new Date(iso);
   const diffMs = date.getTime() - now.getTime();
   const diffSec = Math.round(diffMs / 1000);
   const absSec = Math.abs(diffSec);
 
-  const rtf = new Intl.RelativeTimeFormat(undefined, { numeric: "auto" });
+  const rtf = new Intl.RelativeTimeFormat(UI_LOCALE, { numeric: "auto" });
 
   if (absSec < 60) {
     return rtf.format(diffSec, "second");
@@ -30,7 +32,7 @@ export function formatRelativeTime(iso: string, now: Date = new Date()): string 
 }
 
 export function formatDateTimeTooltip(iso: string): string {
-  return new Date(iso).toLocaleString(undefined, {
+  return new Date(iso).toLocaleString(UI_LOCALE, {
     year: "numeric",
     month: "short",
     day: "numeric",
