@@ -1,5 +1,11 @@
 import { randomUUID } from "node:crypto";
-import type { CreateJobInput, Job, ListJobsQuery, PatchJobInput } from "@jp/shared-types";
+import {
+  searchAndFilterJobs,
+  type CreateJobInput,
+  type Job,
+  type ListJobsQuery,
+  type PatchJobInput,
+} from "@jp/shared-types";
 import {
   applyStageChange,
   createInitialStageState,
@@ -11,7 +17,7 @@ import {
   archiveReasonForTerminalStage,
   restoreJob,
 } from "../archive-lifecycle-manager/index.js";
-import { searchAndFilterJobs } from "../search-filter-engine/index.js";
+import type { UserPreferencesRepository } from "../user-preferences/user-preferences.js";
 import type { JobStore } from "./types.js";
 
 function optionalTrim(value: string | undefined): string | undefined {
@@ -23,7 +29,10 @@ export class JobRepository {
   private terminalStageListeners: Array<(event: TerminalStageEvent) => void> =
     [];
 
-  constructor(private readonly store: JobStore) {}
+  constructor(
+    private readonly store: JobStore,
+    private readonly preferences?: UserPreferencesRepository,
+  ) {}
 
   onTerminalStage(listener: (event: TerminalStageEvent) => void): () => void {
     this.terminalStageListeners.push(listener);
@@ -130,7 +139,10 @@ export class JobRepository {
     let terminalStageEvent: TerminalStageEvent | undefined;
 
     if (input.stage !== undefined) {
-      const result = applyStageChange(job, input.stage);
+      const stageList = this.preferences
+        ? (await this.preferences.getOrCreate(userId)).stageList
+        : undefined;
+      const result = applyStageChange(job, input.stage, undefined, stageList);
       job = result.job;
       terminalStageEvent = result.terminalStageEvent;
       if (terminalStageEvent) {

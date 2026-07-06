@@ -25,7 +25,7 @@ export {
   getDevUserAccountRepository,
 } from "./modules/user-account/index.js";
 export type { UserAccountStore } from "./modules/user-account/index.js";
-export { searchAndFilterJobs } from "./modules/search-filter-engine/index.js";
+export { searchAndFilterJobs } from "@jp/shared-types";
 export {
   archiveJob,
   restoreJob,

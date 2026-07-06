@@ -46,10 +46,13 @@ export function buildDevStores(): Stores {
   const profileStore = new InMemoryProfileStore();
   const preferencesStore = new InMemoryUserPreferencesStore();
   const notificationStore = new InMemoryNotificationStore();
+  const userPreferencesRepository = new UserPreferencesRepository(preferencesStore);
 
   return {
     jobStore,
-    jobRepository: new JobRepository(jobStore),
+    preferencesStore,
+    userPreferencesRepository,
+    jobRepository: new JobRepository(jobStore, userPreferencesRepository),
     userAccountRepository: new UserAccountRepository(
       new InMemoryUserAccountStore(),
       jobStore,
@@ -59,8 +62,6 @@ export function buildDevStores(): Stores {
     ),
     profileStore,
     profileRepository: new ProfileRepository(profileStore),
-    preferencesStore,
-    userPreferencesRepository: new UserPreferencesRepository(preferencesStore),
     notificationStore,
     notificationCenter: new NotificationCenter(notificationStore),
   };
@@ -77,10 +78,13 @@ export function buildPostgresStores(pool: pg.Pool): Stores {
   const profileStore = new PostgresProfileStore(pool);
   const preferencesStore = new PostgresUserPreferencesStore(pool);
   const notificationStore = new PostgresNotificationStore(pool);
+  const userPreferencesRepository = new UserPreferencesRepository(preferencesStore);
 
   return {
     jobStore,
-    jobRepository: new JobRepository(jobStore),
+    preferencesStore,
+    userPreferencesRepository,
+    jobRepository: new JobRepository(jobStore, userPreferencesRepository),
     userAccountRepository: new UserAccountRepository(
       new PostgresUserAccountStore(pool),
       jobStore,
@@ -90,8 +94,6 @@ export function buildPostgresStores(pool: pg.Pool): Stores {
     ),
     profileStore,
     profileRepository: new ProfileRepository(profileStore),
-    preferencesStore,
-    userPreferencesRepository: new UserPreferencesRepository(preferencesStore),
     notificationStore,
     notificationCenter: new NotificationCenter(notificationStore),
   };

@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { Job } from "@jp/shared-types";
 import {
   applyStageChange,
+  assertStageInPipeline,
   getDisplayStages,
   resolvePipelineStages,
   SUBMITTED_RESUME_STAGE,
@@ -90,6 +91,32 @@ describe("StagePipelineManager", () => {
       "Stage is required",
     );
   });
+
+  it("rejects unknown stages against a custom stage list", () => {
+    const customList = [SUBMITTED_RESUME_STAGE, "Recruiter call", "Onsite"];
+
+    expect(() => assertStageInPipeline("Phone screen", customList)).toThrow(
+      "Unknown stage: Phone screen",
+    );
+    expect(() => applyStageChange(sampleJob(), "Phone screen", undefined, customList)).toThrow(
+      "Unknown stage: Phone screen",
+    );
+  });
+
+  it("allows valid stages and terminal outcomes in a custom stage list", () => {
+    const customList = [SUBMITTED_RESUME_STAGE, "Recruiter call", "Onsite"];
+
+    const result = applyStageChange(
+      sampleJob(),
+      "Recruiter call",
+      "2026-02-01T10:00:00.000Z",
+      customList,
+    );
+    expect(result.job.currentStage).toBe("Recruiter call");
+
+    const accepted = applyStageChange(sampleJob(), "Accepted", undefined, customList);
+    expect(accepted.terminalStageEvent?.stage).toBe("Accepted");
+  });
 });
 
 describe("JobRepository stage integration", () => {
@@ -97,7 +124,12 @@ describe("JobRepository stage integration", () => {
     const { createJobRepository, InMemoryJobStore } = await import(
       "@backend/modules/job-repository/index.js"
     );
-    const repository = createJobRepository(new InMemoryJobStore());
+    const { UserPreferencesRepository, InMemoryUserPreferencesStore } =
+      await import("@backend/modules/user-preferences/index.js");
+    const preferences = new UserPreferencesRepository(
+      new InMemoryUserPreferencesStore(),
+    );
+    const repository = createJobRepository(new InMemoryJobStore(), preferences);
     const listener = vi.fn();
     repository.onTerminalStage(listener);
 
@@ -119,6 +151,60 @@ describe("JobRepository stage integration", () => {
       userId: "user-1",
       stage: "Accepted",
     });
+  });
+
+  it("rejects unknown stages when user preferences are wired", async () => {
+    const { createJobRepository, InMemoryJobStore } = await import(
+      "@backend/modules/job-repository/index.js"
+    );
+    const { UserPreferencesRepository, InMemoryUserPreferencesStore } =
+      await import("@backend/modules/user-preferences/index.js");
+    const preferences = new UserPreferencesRepository(
+      new InMemoryUserPreferencesStore(),
+    );
+    const repository = createJobRepository(new InMemoryJobStore(), preferences);
+
+    const created = await repository.create("user-1", {
+      title: "Engineer",
+      company: "Acme",
+      submissionDate: "2026-01-01",
+    });
+
+    await preferences.update("user-1", {
+      stageList: [SUBMITTED_RESUME_STAGE, "Recruiter call", "Onsite"],
+    });
+
+    await expect(
+      repository.patch(created.userId, created.id, { stage: "Phone screen" }),
+    ).rejects.toThrow("Unknown stage: Phone screen");
+  });
+
+  it("allows valid stage transitions against a custom stage list", async () => {
+    const { createJobRepository, InMemoryJobStore } = await import(
+      "@backend/modules/job-repository/index.js"
+    );
+    const { UserPreferencesRepository, InMemoryUserPreferencesStore } =
+      await import("@backend/modules/user-preferences/index.js");
+    const preferences = new UserPreferencesRepository(
+      new InMemoryUserPreferencesStore(),
+    );
+    const repository = createJobRepository(new InMemoryJobStore(), preferences);
+
+    const created = await repository.create("user-1", {
+      title: "Engineer",
+      company: "Acme",
+      submissionDate: "2026-01-01",
+    });
+
+    await preferences.update("user-1", {
+      stageList: [SUBMITTED_RESUME_STAGE, "Recruiter call", "Onsite"],
+    });
+
+    const result = await repository.patch(created.userId, created.id, {
+      stage: "Recruiter call",
+    });
+
+    expect(result.job.currentStage).toBe("Recruiter call");
   });
 
   it("updates notes without changing stage", async () => {
