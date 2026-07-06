@@ -8,6 +8,7 @@ import {
   createJobRepository,
   PostgresJobStore,
 } from "@backend/modules/job-repository/index.js";
+import { patchJob } from "@backend/application/jobs/index.js";
 import { SUBMITTED_RESUME_STAGE } from "@backend/modules/stage-pipeline-manager/index.js";
 
 const databaseConfigured = Boolean(
@@ -130,10 +131,11 @@ describe.skipIf(!databaseConfigured)("PostgresJobStore via JobRepository", () =>
       submissionDate: "2026-01-15",
     });
 
-    const { terminalStageEvent } = await repository.patch(
+    const { terminalStageEvent } = await patchJob(
       "pg-test-user",
       created.id,
       { stage: "Rejected" },
+      repository,
     );
     expect(terminalStageEvent?.stage).toBe("Rejected");
 

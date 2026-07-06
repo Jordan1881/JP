@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import type { Job } from "@jp/shared-types";
 import {
   applyStageChange,
@@ -120,39 +120,6 @@ describe("StagePipelineManager", () => {
 });
 
 describe("JobRepository stage integration", () => {
-  it("emits terminal stage listener when patching to Accepted", async () => {
-    const { createJobRepository, InMemoryJobStore } = await import(
-      "@backend/modules/job-repository/index.js"
-    );
-    const { UserPreferencesRepository, InMemoryUserPreferencesStore } =
-      await import("@backend/modules/user-preferences/index.js");
-    const preferences = new UserPreferencesRepository(
-      new InMemoryUserPreferencesStore(),
-    );
-    const repository = createJobRepository(new InMemoryJobStore(), preferences);
-    const listener = vi.fn();
-    repository.onTerminalStage(listener);
-
-    const created = await repository.create("user-1", {
-      title: "Engineer",
-      company: "Acme",
-      submissionDate: "2026-01-01",
-    });
-
-    const result = await repository.patch(created.userId, created.id, {
-      stage: "Accepted",
-    });
-
-    expect(result.job.currentStage).toBe("Accepted");
-    expect(result.job.status).toBe("archived");
-    expect(result.job.archiveReason).toBe("accepted");
-    expect(listener).toHaveBeenCalledWith({
-      jobId: created.id,
-      userId: "user-1",
-      stage: "Accepted",
-    });
-  });
-
   it("rejects unknown stages when user preferences are wired", async () => {
     const { createJobRepository, InMemoryJobStore } = await import(
       "@backend/modules/job-repository/index.js"

@@ -8,6 +8,15 @@ export function archiveReasonForTerminalStage(stage: TerminalStage): ArchiveReas
   return stage === "Accepted" ? "accepted" : "rejected";
 }
 
+/** Archive rules for Accepted/Rejected — consumed by the stage→archive coordinator. */
+export function archiveJobForTerminalStage(
+  job: Job,
+  stage: TerminalStage,
+  now: string = job.lastUpdatedAt,
+): Job {
+  return archiveJob(job, archiveReasonForTerminalStage(stage), now);
+}
+
 export function archiveJob(
   job: Job,
   reason: ArchiveReason,

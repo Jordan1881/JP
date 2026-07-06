@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { Job } from "@jp/shared-types";
 import {
   archiveJob,
+  archiveJobForTerminalStage,
   isEligibleForDeletion,
   isPermanentArchive,
   restoreJob,
@@ -24,6 +25,16 @@ function job(overrides: Partial<Job> = {}): Job {
 }
 
 describe("ArchiveLifecycleManager", () => {
+  it("archives terminal Accepted and Rejected stages with permanent reasons", () => {
+    const accepted = archiveJobForTerminalStage(job(), "Accepted");
+    expect(accepted.archiveReason).toBe("accepted");
+    expect(isPermanentArchive(accepted)).toBe(true);
+
+    const rejected = archiveJobForTerminalStage(job(), "Rejected");
+    expect(rejected.archiveReason).toBe("rejected");
+    expect(isPermanentArchive(rejected)).toBe(true);
+  });
+
   it("marks accepted archives as permanent", () => {
     const archived = archiveJob(job(), "accepted");
     expect(isPermanentArchive(archived)).toBe(true);
