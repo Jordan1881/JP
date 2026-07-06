@@ -48,11 +48,13 @@ export function NavUserMenu({ userName, onSignOut, compact = false }: NavUserMen
         className="flex h-9 w-9 items-center justify-center rounded-md border border-border text-foreground transition-colors hover:bg-secondary"
       >
         <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden>
+          <circle cx="12" cy="8" r="3.5" stroke="currentColor" strokeWidth="1.75" fill="none" />
           <path
-            d="M4 7h16M4 12h16M4 17h16"
+            d="M5 20c0-3.5 3-5.5 7-5.5s7 2 7 5.5"
             stroke="currentColor"
             strokeWidth="1.75"
             strokeLinecap="round"
+            fill="none"
           />
         </svg>
       </button>
@@ -72,13 +74,6 @@ export function NavUserMenu({ userName, onSignOut, compact = false }: NavUserMen
             </Link>
           </div>
           <div className="py-1">
-            {compact ? null : (
-              <>
-                <Link href="/profile" role="menuitem" onClick={() => setOpen(false)} className="block px-4 py-2.5 text-sm text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground">Profile</Link>
-                <Link href="/dashboard" role="menuitem" onClick={() => setOpen(false)} className="block px-4 py-2.5 text-sm text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground">Dashboard</Link>
-                <Link href="/settings" role="menuitem" onClick={() => setOpen(false)} className="block px-4 py-2.5 text-sm text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground">Settings</Link>
-              </>
-            )}
             {compact ? null : <ThemeToggle />}
             <button
               type="button"

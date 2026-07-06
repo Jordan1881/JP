@@ -1,10 +1,14 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useId, useRef } from "react";
+import { useTheme } from "@/components/ThemeProvider";
 import { gsap, registerGsapPlugins } from "@/lib/gsap";
 
 export function HeroVisual() {
   const rootRef = useRef<HTMLDivElement>(null);
+  const { theme } = useTheme();
+  const gradientId = useId();
+  const isDark = theme === "dark";
 
   useEffect(() => {
     registerGsapPlugins();
@@ -44,34 +48,44 @@ export function HeroVisual() {
     return () => ctx.revert();
   }, []);
 
+  const ringStart = isDark ? "rgba(255,255,255,0.18)" : "rgba(0,0,0,0.16)";
+  const ringEnd = isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.04)";
+  const nodePrimary = isDark ? "rgba(255,255,255,0.7)" : "rgba(0,0,0,0.55)";
+  const nodeSecondary = isDark ? "rgba(255,255,255,0.35)" : "rgba(0,0,0,0.28)";
+  const centerFill = isDark ? "#141414" : "#f4f4f5";
+  const centerStroke = isDark ? "rgba(255,255,255,0.15)" : "rgba(0,0,0,0.12)";
+  const logoSrc = isDark ? "/logo-light.svg" : "/logo-dark.svg";
+
   return (
     <div
       ref={rootRef}
       className="relative mx-auto flex aspect-square w-full max-w-md items-center justify-center md:max-w-lg"
       aria-hidden
     >
-      <div className="absolute inset-0 rounded-full bg-white/[0.03] blur-3xl" />
+      <div
+        className={
+          isDark
+            ? "absolute inset-0 rounded-full bg-white/[0.03] blur-3xl"
+            : "absolute inset-0 rounded-full bg-black/[0.04] blur-3xl"
+        }
+      />
 
       <svg viewBox="0 0 400 400" className="h-full w-full">
         <defs>
-          <linearGradient id="ring-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="rgba(255,255,255,0.18)" />
-            <stop offset="100%" stopColor="rgba(255,255,255,0.04)" />
+          <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor={ringStart} />
+            <stop offset="100%" stopColor={ringEnd} />
           </linearGradient>
         </defs>
 
         {[160, 130, 100, 70].map((r, i) => (
-          <g
-            key={r}
-            data-ring
-            style={{ transformOrigin: "200px 200px" }}
-          >
+          <g key={r} data-ring style={{ transformOrigin: "200px 200px" }}>
             <circle
               cx="200"
               cy="200"
               r={r}
               fill="none"
-              stroke="url(#ring-grad)"
+              stroke={`url(#${gradientId})`}
               strokeWidth={i === 0 ? 1.5 : 1}
               strokeDasharray={i % 2 === 0 ? "4 8" : "2 6"}
               opacity={0.35 + i * 0.12}
@@ -93,7 +107,7 @@ export function HeroVisual() {
             cx={pos.cx}
             cy={pos.cy}
             r={i < 4 ? 4 : 3}
-            fill={i < 4 ? "rgba(255,255,255,0.7)" : "rgba(255,255,255,0.35)"}
+            fill={i < 4 ? nodePrimary : nodeSecondary}
           />
         ))}
 
@@ -103,17 +117,11 @@ export function HeroVisual() {
           width="64"
           height="64"
           rx="12"
-          fill="#141414"
-          stroke="rgba(255,255,255,0.15)"
+          fill={centerFill}
+          stroke={centerStroke}
           strokeWidth="1.5"
         />
-        <image
-          href="/logo-light.svg"
-          x="181"
-          y="180"
-          width="38"
-          height="40"
-        />
+        <image href={logoSrc} x="181" y="180" width="38" height="40" />
       </svg>
     </div>
   );
