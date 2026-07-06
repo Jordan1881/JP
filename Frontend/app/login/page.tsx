@@ -10,6 +10,7 @@ import {
   AuthField,
   authInputClassName,
 } from "@/components/AuthCard";
+import { AuthDivider, GoogleSignInButton } from "@/components/GoogleSignInButton";
 import { authSignIn, formatCognitoError, isAuthConfigured } from "@/lib/auth";
 
 export default function LoginPage() {
@@ -50,12 +51,14 @@ export default function LoginPage() {
       footer={
         <>
           New here?{" "}
-          <Link href="/signup" className="text-foreground underline">
-            Create an account
+          <Link href="/register" className="text-foreground underline">
+            Register
           </Link>
         </>
       }
     >
+      <GoogleSignInButton />
+      <AuthDivider />
       <form onSubmit={handleSubmit} className="space-y-5">
         <AuthError message={error} />
         <AuthField label="Email">
@@ -76,7 +79,7 @@ export default function LoginPage() {
             required
           />
         </AuthField>
-        <AuthButton disabled={submitting}>Sign in</AuthButton>
+        <AuthButton disabled={submitting}>Sign in with email</AuthButton>
       </form>
     </AuthCard>
   );

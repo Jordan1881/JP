@@ -40,9 +40,11 @@ function resolveAuthorizerUserPool(
 const COGNITO_CALLBACK_URLS = [
   "http://localhost:3000",
   "http://localhost:3000/",
+  "http://localhost:3000/auth/callback",
   "http://localhost:3000/api/auth/callback/cognito",
   "https://main.dbkqz2plarhlv.amplifyapp.com",
   "https://main.dbkqz2plarhlv.amplifyapp.com/",
+  "https://main.dbkqz2plarhlv.amplifyapp.com/auth/callback",
   "https://main.dbkqz2plarhlv.amplifyapp.com/api/auth/callback/cognito",
 ];
 
@@ -67,6 +69,12 @@ export class JpStack extends cdk.Stack {
     const auth = new JpCognito(this, "JpAuth", {
       callbackUrls: COGNITO_CALLBACK_URLS,
       logoutUrls: COGNITO_LOGOUT_URLS,
+      googleClientId:
+        this.node.tryGetContext("googleClientId") ??
+        process.env.GOOGLE_OAUTH_CLIENT_ID,
+      googleClientSecret:
+        this.node.tryGetContext("googleClientSecret") ??
+        process.env.GOOGLE_OAUTH_CLIENT_SECRET,
     });
 
     const database = new AuroraExpress(this, "JpDatabase", {
@@ -192,6 +200,16 @@ export class JpStack extends cdk.Stack {
     new cdk.CfnOutput(this, "CognitoHostedUiUrl", {
       value: auth.hostedUiUrl,
       description: "Cognito hosted UI base URL",
+    });
+
+    new cdk.CfnOutput(this, "CognitoOAuthDomain", {
+      value: auth.hostedUiUrl.replace(/^https:\/\//, ""),
+      description: "Cognito OAuth domain for NEXT_PUBLIC_COGNITO_DOMAIN",
+    });
+
+    new cdk.CfnOutput(this, "GoogleSignInEnabled", {
+      value: auth.googleEnabled ? "true" : "false",
+      description: "Whether Google identity provider is configured on the user pool",
     });
   }
 }

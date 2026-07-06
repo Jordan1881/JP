@@ -1,5 +1,7 @@
 "use client";
 
+import "aws-amplify/auth/enable-oauth-listener";
+
 import {
   confirmSignUp,
   deleteUser,
@@ -7,16 +9,17 @@ import {
   fetchUserAttributes,
   getCurrentUser,
   signIn,
+  signInWithRedirect,
   signOut,
   signUp,
   updatePassword,
   type SignUpOutput,
 } from "aws-amplify/auth";
-import { configureAmplify, isAuthConfigured } from "./amplify";
+import { configureAmplify, isAuthConfigured, isGoogleAuthConfigured } from "./amplify";
 
 configureAmplify();
 
-export { isAuthConfigured };
+export { isAuthConfigured, isGoogleAuthConfigured };
 
 /** Map Cognito error names to user-facing messages. */
 export function formatCognitoError(error: unknown): string {
@@ -86,6 +89,11 @@ export async function authConfirmSignUp(email: string, code: string) {
 export async function authSignIn(email: string, password: string) {
   await ensureSignedOut();
   return signIn({ username: email, password });
+}
+
+export async function authSignInWithGoogle() {
+  await ensureSignedOut();
+  return signInWithRedirect({ provider: "Google" });
 }
 
 export async function authSignOut() {
