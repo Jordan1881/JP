@@ -20,13 +20,14 @@ import { JpLoader } from "@/components/JpLoader";
 import { FormError } from "@/components/FormError";
 import { useToast } from "@/components/ToastProvider";
 import { getErrorMessage } from "@/lib/feedback";
+import { UI_LOCALE } from "@/lib/locale";
 
 interface JobDetailViewProps {
   jobId: string;
 }
 
 function formatDateTime(iso: string): string {
-  return new Date(iso).toLocaleString(undefined, {
+  return new Date(iso).toLocaleString(UI_LOCALE, {
     year: "numeric",
     month: "short",
     day: "numeric",

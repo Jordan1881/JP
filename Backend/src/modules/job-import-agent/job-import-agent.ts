@@ -11,7 +11,7 @@ const BOT_BLOCK_MESSAGE =
   "This site blocks automated access. Open the posting in your browser, copy the job description, and paste it using \"Paste text instead\".";
 
 const EXTRACT_SYSTEM = `You extract job application fields from a job posting.
-Return JSON only:
+Return a single JSON object only — no markdown fences, no explanation:
 {
   "title": string,
   "company": string,
@@ -23,7 +23,7 @@ Rules:
 - title and company are required — infer from the content, page <title>, or URL hostname when needed
 - description: plain-text summary of role, requirements, and responsibilities (max ~2000 chars)
 - jobNumber: requisition / job ID if explicitly shown, otherwise null
-- Content may be in any language (e.g. Hebrew) — keep the original language
+- Content may be in any language (e.g. Hebrew) — keep field values in the source language
 - Do not invent salary, benefits, or details not present in the content
 - If the content is a login wall, captcha, or unrelated, set title and company to empty strings`;
 
