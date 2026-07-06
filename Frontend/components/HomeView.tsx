@@ -6,10 +6,10 @@ import { searchAndFilterJobs } from "@jp/shared-types";
 import { gsap, registerGsapPlugins } from "@/lib/gsap";
 import { AddJobForm } from "@/components/AddJobForm";
 import { ApplicationsTable } from "@/components/ApplicationsTable";
-import { ApplicationsTableSkeleton } from "@/components/ApplicationsTableSkeleton";
 import { HeroVisual } from "@/components/HeroVisual";
 import { AppLogo } from "@/components/AppLogo";
-import { TopLoadBar } from "@/components/TopLoadBar";
+import { JpBackgroundLoad } from "@/components/JpBackgroundLoad";
+import { JpLoader } from "@/components/JpLoader";
 import { fetchJobs } from "@/lib/jobs-api";
 import { fetchPreferences } from "@/lib/preferences-api";
 import { fetchProfile } from "@/lib/profile-api";
@@ -167,7 +167,7 @@ export function HomeView() {
 
   return (
     <div ref={rootRef}>
-      <TopLoadBar active={jobsLoading} />
+      <JpBackgroundLoad active={jobsLoading} label="Loading applications…" />
       <div className="pointer-events-none fixed inset-0 grid-dots opacity-60" />
       <div className="pointer-events-none fixed inset-x-0 top-16 h-[480px] bg-gradient-to-b from-white/[0.03] to-transparent" />
 
@@ -279,7 +279,9 @@ export function HomeView() {
         </div>
         <div data-scroll-reveal id="applications">
           {jobsLoading ? (
-            <ApplicationsTableSkeleton />
+            <section className="flex min-h-[320px] items-center justify-center overflow-hidden rounded-xl border border-border bg-card/80 backdrop-blur-sm">
+              <JpLoader size="md" label="Loading applications…" />
+            </section>
           ) : (
             <ApplicationsTable jobs={jobs} stageList={stageList} />
           )}

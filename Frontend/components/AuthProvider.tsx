@@ -12,7 +12,8 @@ import {
 import { usePathname, useRouter } from "next/navigation";
 import type { UserAccount } from "@jp/shared-types";
 import { needsTermsReacceptance } from "@jp/shared-types";
-import { TopLoadBar } from "@/components/TopLoadBar";
+import { JpBackgroundLoad } from "@/components/JpBackgroundLoad";
+import { JpLoader } from "@/components/JpLoader";
 import { fetchAccount } from "@/lib/account-api";
 import { getCachedAccount } from "@/lib/account-cache";
 import { authGetCurrentUser, isAuthConfigured } from "@/lib/auth";
@@ -138,11 +139,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   if (showAuthGate) {
     return (
       <>
-        <TopLoadBar active />
-        <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-background">
-          <p className="text-sm font-normal text-muted-foreground">
-            Loading your account…
-          </p>
+        <div className="flex min-h-screen flex-col items-center justify-center bg-background">
+          <JpLoader size="lg" label="Loading your account…" />
         </div>
       </>
     );
@@ -150,7 +148,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider value={value}>
-      <TopLoadBar active={loading} />
+      <JpBackgroundLoad active={loading} label="Syncing account…" />
       {children}
     </AuthContext.Provider>
   );
