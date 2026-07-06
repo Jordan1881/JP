@@ -12,7 +12,6 @@ applications:
             - pnpm install --frozen-lockfile
             - pnpm rebuild esbuild sharp
             - pnpm --filter @jp/shared-types build
-            - pnpm --filter @jp/backend build
         build:
           commands:
             - pnpm --filter @jp/frontend build

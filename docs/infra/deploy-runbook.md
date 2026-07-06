@@ -20,7 +20,26 @@ If builds do not trigger, reconnect the branch or check Amplify service role per
 
 ### Amplify environment variables
 
-Under **Hosting** → **Environment variables** (branch `main`), confirm Cognito and API settings match CDK outputs. Agents need Anthropic credentials — see [anthropic-secret.md](./anthropic-secret.md) for `ANTHROPIC_API_KEY` or Secrets Manager wiring in Lambda (frontend may only need public Cognito IDs and API base URL).
+Under **Hosting** → **Environment variables** (branch `main`), confirm Cognito and API settings match CDK outputs:
+
+| Variable | Purpose |
+|----------|---------|
+| `JP_API_URL` | API Gateway stage URL (CDK `ApiUrl` output, trailing slash optional) |
+| `NEXT_PUBLIC_COGNITO_USER_POOL_ID` | Cognito user pool |
+| `NEXT_PUBLIC_COGNITO_CLIENT_ID` | Cognito app client |
+| `NEXT_PUBLIC_COGNITO_REGION` | e.g. `us-east-1` |
+
+Agents need Anthropic credentials — see [anthropic-secret.md](./anthropic-secret.md) for `ANTHROPIC_API_KEY` or Secrets Manager wiring in Lambda (frontend only needs public Cognito IDs and `JP_API_URL`).
+
+### Local development
+
+1. Copy `.env.example` to `.env.local` at the **repo root** (Next.js loads it from the monorepo root).
+2. Set **`JP_API_URL`** to the deployed API Gateway URL (same value as Amplify). Local `pnpm dev` does not run `@jp/backend` in-process; all `/api/*` routes proxy to Lambda.
+3. Set Cognito public IDs (`NEXT_PUBLIC_COGNITO_*`) for login.
+4. From repo root: `pnpm install`, then `pnpm --filter @jp/frontend dev` (or `cd Frontend && pnpm dev`).
+
+Without `JP_API_URL`, API routes return **503** with a configuration hint.
+
 
 ## 2. GitHub Actions secrets (backend CDK)
 
@@ -40,6 +59,7 @@ Optional E2E secrets (see README E2E section):
 |--------|---------|
 | `E2E_EMAIL` / `E2E_PASSWORD` | `e2e-local`, `e2e-production` |
 | `COGNITO_USER_POOL_ID` / `COGNITO_CLIENT_ID` | `e2e-local` (Next.js dev server) |
+| `JP_API_URL` | `e2e-local` (Next.js API routes proxy to Lambda) |
 
 ## 3. Post-deploy smoke test (manual)
 
