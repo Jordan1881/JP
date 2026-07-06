@@ -148,6 +148,33 @@ export async function authGetProfile(): Promise<{ email?: string; name?: string 
   return { email, name };
 }
 
+/** True when the session came from Google (or another external IdP), not email/password. */
+export async function authIsFederatedSignIn(): Promise<boolean> {
+  try {
+    const session = await fetchAuthSession();
+    const payload = session.tokens?.idToken?.payload;
+    if (!payload) {
+      return false;
+    }
+
+    const identities = payload.identities;
+    if (Array.isArray(identities)) {
+      return identities.some((entry) => {
+        if (!entry || typeof entry !== "object") {
+          return false;
+        }
+        const provider = (entry as { providerName?: string }).providerName;
+        return Boolean(provider && provider !== "Cognito");
+      });
+    }
+
+    const username = payload["cognito:username"];
+    return typeof username === "string" && username.startsWith("Google_");
+  } catch {
+    return false;
+  }
+}
+
 export async function authUpdatePassword(
   oldPassword: string,
   newPassword: string,
