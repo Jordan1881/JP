@@ -1,6 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
 const baseURL = process.env.E2E_BASE_URL ?? "http://localhost:3000";
+const isLocalTarget = baseURL.includes("localhost");
 
 export default defineConfig({
   testDir: "./e2e",
@@ -14,11 +15,11 @@ export default defineConfig({
     trace: "on-first-retry",
     ...devices["Desktop Chrome"],
   },
-  webServer: process.env.CI
+  webServer: isLocalTarget
     ? {
         command: "pnpm --filter @jp/frontend dev",
         url: baseURL,
-        reuseExistingServer: false,
+        reuseExistingServer: !process.env.CI,
         timeout: 120_000,
       }
     : undefined,

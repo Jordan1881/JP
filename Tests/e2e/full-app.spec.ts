@@ -14,6 +14,11 @@ test.describe("full app top-to-bottom", () => {
     const company = "Playwright Inc";
 
     await ensureLoggedIn(page, email, password);
+    await page.reload();
+    await expect(page).toHaveURL("/", { timeout: 20_000 });
+    await expect(
+      page.getByRole("heading", { name: "Finish your account" }),
+    ).not.toBeVisible();
     await expect(page.getByRole("navigation").getByRole("img", { name: /JP/i })).toBeVisible();
     await expect(page.getByRole("heading", { name: /track every application/i })).toBeVisible();
 

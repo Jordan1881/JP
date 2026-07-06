@@ -25,17 +25,15 @@ Specs live in `Tests/e2e/`:
 
 | Spec | Coverage |
 |------|----------|
-| `auth-login.spec.ts` | Login → finish-setup flow |
-| `signup-loop.spec.ts` | No redirect loop after reload |
-| `add-job.spec.ts` | Add application on home |
-| `full-app.spec.ts` | Dashboard, profile, settings smoke |
+| `full-app.spec.ts` | Login, add job, search, dashboard, profile, settings, archive |
+| `settings-stages.spec.ts` | Stage list drag-and-drop reorder |
 
-**Base URL** defaults to `http://localhost:3000`. Override with `E2E_BASE_URL` (e.g. production Amplify URL for smoke tests).
+**Base URL** defaults to `http://localhost:3000` (Playwright starts the dev server). Override with `E2E_BASE_URL` to smoke-test production Amplify.
 
-**Credentials** — set `E2E_EMAIL` and `E2E_PASSWORD` for a Cognito test user. When unset, specs call `test.skip()` and CI jobs exit successfully without running browsers.
+**Credentials** — set `E2E_EMAIL` and `E2E_PASSWORD` for a Cognito test user. When unset, specs call `test.skip()` and the CI job exits successfully without running browsers.
 
 ```bash
-# Local (start the dev server in another terminal, or let CI start it)
+# Local (Playwright starts the dev server; set JP_API_URL in .env.local)
 E2E_EMAIL=you@example.com E2E_PASSWORD=secret pnpm test:e2e
 
 # Production smoke
@@ -43,7 +41,7 @@ E2E_BASE_URL=https://main.dbkqz2plarhlv.amplifyapp.com \
   E2E_EMAIL=... E2E_PASSWORD=... pnpm test:e2e
 ```
 
-CI runs `e2e-local` (starts the app via Playwright `webServer`) and `e2e-production` when GitHub Actions secrets `E2E_EMAIL`, `E2E_PASSWORD`, and (for local) `COGNITO_*` are configured.
+CI runs **`e2e`** against the deployed Amplify URL when GitHub Actions secrets `E2E_EMAIL` and `E2E_PASSWORD` are configured.
 
 ## Deployment verification
 

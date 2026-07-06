@@ -40,68 +40,7 @@ jobs:
         run: pnpm --filter @jp/backend db:migrate
       - run: pnpm test
 
-  e2e-local:
-    runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:15
-        env:
-          POSTGRES_USER: jp
-          POSTGRES_PASSWORD: jp
-          POSTGRES_DB: jp
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U jp"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
-    env:
-      CI: true
-      DATABASE_URL: postgres://jp:jp@localhost:5432/jp
-      E2E_BASE_URL: http://localhost:3000
-    steps:
-      - uses: actions/checkout@v4
-      - name: Check E2E credentials
-        id: e2e
-        run: |
-          if [ -z "${{ secrets.E2E_EMAIL }}" ] || [ -z "${{ secrets.E2E_PASSWORD }}" ]; then
-            echo "skip=true" >> "$GITHUB_OUTPUT"
-            echo "Skipping local E2E: E2E_EMAIL or E2E_PASSWORD is not configured."
-          elif [ -z "${{ secrets.JP_API_URL }}" ]; then
-            echo "skip=true" >> "$GITHUB_OUTPUT"
-            echo "Skipping local E2E: JP_API_URL is not configured."
-          else
-            echo "skip=false" >> "$GITHUB_OUTPUT"
-          fi
-      - uses: pnpm/action-setup@v4
-        if: steps.e2e.outputs.skip != 'true'
-        with:
-          version: 10.4.1
-      - uses: actions/setup-node@v4
-        if: steps.e2e.outputs.skip != 'true'
-        with:
-          node-version: 22
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-        if: steps.e2e.outputs.skip != 'true'
-      - name: Apply database migrations
-        if: steps.e2e.outputs.skip != 'true'
-        run: pnpm --filter @jp/backend db:migrate
-      - name: Install Playwright browsers
-        if: steps.e2e.outputs.skip != 'true'
-        run: pnpm --filter @jp/tests exec playwright install chromium --with-deps
-      - name: Run local E2E
-        if: steps.e2e.outputs.skip != 'true'
-        env:
-          E2E_EMAIL: ${{ secrets.E2E_EMAIL }}
-          E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
-          NEXT_PUBLIC_COGNITO_USER_POOL_ID: ${{ secrets.COGNITO_USER_POOL_ID }}
-          NEXT_PUBLIC_COGNITO_CLIENT_ID: ${{ secrets.COGNITO_CLIENT_ID }}
-          JP_API_URL: ${{ secrets.JP_API_URL }}
-        run: pnpm test:e2e
-
-  e2e-production:
+  e2e:
     runs-on: ubuntu-latest
     env:
       E2E_BASE_URL: https://main.dbkqz2plarhlv.amplifyapp.com
@@ -112,7 +51,7 @@ jobs:
         run: |
           if [ -z "${{ secrets.E2E_EMAIL }}" ] || [ -z "${{ secrets.E2E_PASSWORD }}" ]; then
             echo "skip=true" >> "$GITHUB_OUTPUT"
-            echo "Skipping production E2E: E2E_EMAIL or E2E_PASSWORD is not configured."
+            echo "Skipping E2E: E2E_EMAIL or E2E_PASSWORD is not configured."
           else
             echo "skip=false" >> "$GITHUB_OUTPUT"
           fi
@@ -130,7 +69,7 @@ jobs:
       - name: Install Playwright browsers
         if: steps.e2e.outputs.skip != 'true'
         run: pnpm --filter @jp/tests exec playwright install chromium --with-deps
-      - name: Run production E2E
+      - name: Run E2E against production
         if: steps.e2e.outputs.skip != 'true'
         env:
           E2E_EMAIL: ${{ secrets.E2E_EMAIL }}

@@ -57,9 +57,7 @@ Optional E2E secrets (see README E2E section):
 
 | Secret | Used by |
 |--------|---------|
-| `E2E_EMAIL` / `E2E_PASSWORD` | `e2e-local`, `e2e-production` |
-| `COGNITO_USER_POOL_ID` / `COGNITO_CLIENT_ID` | `e2e-local` (Next.js dev server) |
-| `JP_API_URL` | `e2e-local` (Next.js API routes proxy to Lambda) |
+| `E2E_EMAIL` / `E2E_PASSWORD` | `e2e` (production smoke against Amplify) |
 
 ## 3. Post-deploy smoke test (manual)
 
@@ -80,6 +78,4 @@ E2E_BASE_URL=https://main.dbkqz2plarhlv.amplifyapp.com \
   E2E_EMAIL=... E2E_PASSWORD=... pnpm test:e2e
 ```
 
-The `e2e-production` CI job runs the same specs against Amplify on each workflow run (skipped when credentials are absent).
-
-Local PR gate (`e2e-local`) targets `http://localhost:3000` and is separate from this production check ([#54](https://github.com/Jordan1881/JP-Job-Player/issues/54)).
+The **`e2e`** CI job runs the same specs against Amplify on each workflow run (skipped when credentials are absent).
