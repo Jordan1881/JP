@@ -1,6 +1,14 @@
 import * as cdk from "aws-cdk-lib";
 import * as cognito from "aws-cdk-lib/aws-cognito";
+import * as iam from "aws-cdk-lib/aws-iam";
+import * as lambda from "aws-cdk-lib/aws-lambda";
+import * as lambdaNodejs from "aws-cdk-lib/aws-lambda-nodejs";
 import { Construct } from "constructs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 export type JpCognitoProps = {
   /** OAuth redirect URLs for the Next.js app (local + prod). */
@@ -95,6 +103,7 @@ export class JpCognito extends Construct {
 
     if (googleProvider) {
       this.userPoolClient.node.addDependency(googleProvider);
+      this.attachFederatedAccountLinking();
     }
 
     const domainPrefix = `jp-${stack.account}`;
@@ -103,5 +112,42 @@ export class JpCognito extends Construct {
     });
 
     this.hostedUiUrl = domain.baseUrl();
+  }
+
+  /**
+   * When a user signs in with Google and a native email/password account exists
+   * for the same address, link identities so they share one Cognito sub (and JP data).
+   */
+  private attachFederatedAccountLinking(): void {
+    const linkFn = new lambdaNodejs.NodejsFunction(this, "PreSignUpLink", {
+      entry: join(__dirname, "../lambdas/cognito-pre-sign-up-link.ts"),
+      handler: "handler",
+      runtime: lambda.Runtime.NODEJS_22_X,
+      timeout: cdk.Duration.seconds(10),
+      memorySize: 256,
+      description:
+        "Links Google sign-up to an existing native Cognito user with the same email",
+      bundling: {
+        minify: true,
+        sourceMap: true,
+        target: "node22",
+        externalModules: ["aws-sdk"],
+      },
+    });
+
+    linkFn.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: [
+          "cognito-idp:ListUsers",
+          "cognito-idp:AdminLinkProviderForUser",
+        ],
+        resources: [this.userPool.userPoolArn],
+      }),
+    );
+
+    this.userPool.addTrigger(
+      cognito.UserPoolOperation.PRE_SIGN_UP,
+      linkFn,
+    );
   }
 }

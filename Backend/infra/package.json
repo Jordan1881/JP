@@ -12,12 +12,14 @@
     "synth": "cdk synth"
   },
   "dependencies": {
+    "@aws-sdk/client-cognito-identity-provider": "^3.940.0",
     "@jp/backend": "workspace:*",
     "aws-cdk-lib": "^2.232.1",
     "constructs": "^10.4.3"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
+    "@types/aws-lambda": "^8.10.159",
     "@types/node": "^22.19.1",
     "aws-cdk": "^2.1033.0",
     "esbuild": "^0.27.0",
