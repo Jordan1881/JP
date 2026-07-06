@@ -1,17 +1,15 @@
+import { getDevStores } from "../../services/composition-root.js";
 import {
   InMemoryProfileStore,
   ProfileRepository,
 } from "./profile-repository.js";
 
-let devStore: InMemoryProfileStore | null = null;
-
 export function getDevProfileStore(): InMemoryProfileStore {
-  devStore ??= new InMemoryProfileStore();
-  return devStore;
+  return getDevStores().profileStore as InMemoryProfileStore;
 }
 
 export function getDevProfileRepository(): ProfileRepository {
-  return new ProfileRepository(getDevProfileStore());
+  return getDevStores().profileRepository;
 }
 
 export {

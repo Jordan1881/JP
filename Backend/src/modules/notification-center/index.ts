@@ -1,17 +1,15 @@
+import { getDevStores } from "../../services/composition-root.js";
 import {
   NotificationCenter,
   InMemoryNotificationStore,
 } from "./notification-center.js";
 
-let devStore: InMemoryNotificationStore | null = null;
-
 export function getDevNotificationStore(): InMemoryNotificationStore {
-  devStore ??= new InMemoryNotificationStore();
-  return devStore;
+  return getDevStores().notificationStore as InMemoryNotificationStore;
 }
 
 export function getDevNotificationCenter(): NotificationCenter {
-  return new NotificationCenter(getDevNotificationStore());
+  return getDevStores().notificationCenter;
 }
 
 export {

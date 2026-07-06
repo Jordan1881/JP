@@ -1,17 +1,15 @@
+import { getDevStores } from "../../services/composition-root.js";
 import {
   InMemoryUserPreferencesStore,
   UserPreferencesRepository,
 } from "./user-preferences.js";
 
-let devStore: InMemoryUserPreferencesStore | null = null;
-
 export function getDevUserPreferencesStore(): InMemoryUserPreferencesStore {
-  devStore ??= new InMemoryUserPreferencesStore();
-  return devStore;
+  return getDevStores().preferencesStore as InMemoryUserPreferencesStore;
 }
 
 export function getDevUserPreferencesRepository(): UserPreferencesRepository {
-  return new UserPreferencesRepository(getDevUserPreferencesStore());
+  return getDevStores().userPreferencesRepository;
 }
 
 export {

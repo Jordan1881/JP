@@ -4,6 +4,7 @@ import {
   needsTermsReacceptance,
 } from "@jp/shared-types";
 import { createJobRepository, InMemoryJobStore } from "@backend/modules/job-repository/index.js";
+import { InMemoryNotificationStore } from "@backend/modules/notification-center/index.js";
 import { InMemoryProfileStore } from "@backend/modules/profile-repository/index.js";
 import { InMemoryUserPreferencesStore } from "@backend/modules/user-preferences/index.js";
 import {
@@ -75,15 +76,17 @@ describe("UserAccountRepository", () => {
     expect(accepted.termsVersion).toBe(CURRENT_TERMS_VERSION);
   });
 
-  it("deletes account, jobs, profile, and preferences", async () => {
+  it("deletes account, jobs, profile, preferences, and notifications", async () => {
     const jobStore = new InMemoryJobStore();
     const profileStore = new InMemoryProfileStore();
     const preferencesStore = new InMemoryUserPreferencesStore();
+    const notificationStore = new InMemoryNotificationStore();
     const repository = createUserAccountRepository(
       new InMemoryUserAccountStore(),
       jobStore,
       profileStore,
       preferencesStore,
+      notificationStore,
     );
     const jobs = createJobRepository(jobStore);
 
@@ -117,6 +120,16 @@ describe("UserAccountRepository", () => {
       preDeletionWarningsEnabled: true,
       stageList: ["Applied"],
     });
+    await notificationStore.insert({
+      id: "n-1",
+      userId: "user-1",
+      type: "stale_job",
+      jobId: "job-1",
+      title: "Stale",
+      message: "Update stage",
+      read: false,
+      createdAt: new Date().toISOString(),
+    });
 
     await repository.delete("user-1");
 
@@ -124,5 +137,6 @@ describe("UserAccountRepository", () => {
     expect(await jobStore.listByUser("user-1")).toEqual([]);
     expect(await profileStore.get("user-1")).toBeNull();
     expect(await preferencesStore.get("user-1")).toBeNull();
+    expect(await notificationStore.listByUser("user-1")).toEqual([]);
   });
 });
