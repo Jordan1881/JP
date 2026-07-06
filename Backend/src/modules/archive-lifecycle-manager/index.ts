@@ -3,6 +3,7 @@ export {
   PRE_DELETION_WARNING_DAY,
   STALE_JOB_DAYS,
   archiveJob,
+  archiveJobForTerminalStage,
   archiveReasonForTerminalStage,
   daysArchived,
   daysSince,

@@ -8,6 +8,7 @@ export type JobRepositoryPort = Pick<
   | "create"
   | "getById"
   | "patch"
+  | "updateJob"
   | "archiveManual"
   | "archiveNoResponse"
   | "restore"

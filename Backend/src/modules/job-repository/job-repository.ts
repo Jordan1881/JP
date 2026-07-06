@@ -12,11 +12,7 @@ import {
   SUBMITTED_RESUME_STAGE,
   type TerminalStageEvent,
 } from "../stage-pipeline-manager/index.js";
-import {
-  archiveJob,
-  archiveReasonForTerminalStage,
-  restoreJob,
-} from "../archive-lifecycle-manager/index.js";
+import { archiveJob, restoreJob } from "../archive-lifecycle-manager/index.js";
 import type { UserPreferencesRepository } from "../user-preferences/user-preferences.js";
 import type { JobStore } from "./types.js";
 
@@ -26,28 +22,10 @@ function optionalTrim(value: string | undefined): string | undefined {
 }
 
 export class JobRepository {
-  private terminalStageListeners: Array<(event: TerminalStageEvent) => void> =
-    [];
-
   constructor(
     private readonly store: JobStore,
     private readonly preferences?: UserPreferencesRepository,
   ) {}
-
-  onTerminalStage(listener: (event: TerminalStageEvent) => void): () => void {
-    this.terminalStageListeners.push(listener);
-    return () => {
-      this.terminalStageListeners = this.terminalStageListeners.filter(
-        (item) => item !== listener,
-      );
-    };
-  }
-
-  private emitTerminalStage(event: TerminalStageEvent): void {
-    for (const listener of this.terminalStageListeners) {
-      listener(event);
-    }
-  }
 
   async getById(userId: string, jobId: string): Promise<Job | null> {
     return this.store.findById(jobId, userId);
@@ -145,18 +123,18 @@ export class JobRepository {
       const result = applyStageChange(job, input.stage, undefined, stageList);
       job = result.job;
       terminalStageEvent = result.terminalStageEvent;
-      if (terminalStageEvent) {
-        this.emitTerminalStage(terminalStageEvent);
-        job = archiveJob(
-          job,
-          archiveReasonForTerminalStage(terminalStageEvent.stage),
-          job.lastUpdatedAt,
-        );
-      }
     }
 
     const updated = await this.store.update(job);
     return { job: updated, terminalStageEvent };
+  }
+
+  async updateJob(userId: string, jobId: string, job: Job): Promise<Job> {
+    const existing = await this.store.findById(jobId, userId);
+    if (!existing) {
+      throw new Error("Job not found");
+    }
+    return this.store.update(job);
   }
 
   async archiveManual(userId: string, jobId: string): Promise<Job> {
