@@ -59,6 +59,28 @@ export {
 export { JobImportAgent } from "./modules/job-import-agent/index.js";
 export { runDailySweep } from "./services/sweep-service.js";
 export {
+  ApplicationError,
+  mapAccountError,
+  mapApplicationError,
+  mapDashboardError,
+  mapNotificationsError,
+  mapPreferencesError,
+  mapSweepError,
+  getAccount,
+  createAccount,
+  updateAccount,
+  acceptTerms,
+  deleteAccount,
+  getPreferences,
+  updatePreferences,
+  listNotifications,
+  markNotificationRead,
+  markAllNotificationsRead,
+  getDashboardStats,
+  runUserSweep,
+} from "./application/index.js";
+export type { ErrorMapping } from "./application/index.js";
+export {
   getPool,
   getJobRepository,
   getJobStore,
