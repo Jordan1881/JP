@@ -51,6 +51,7 @@ const IMPORT_CLIENT_ERROR_MARKERS = [
   "blocks automated",
   "Paste more",
   "http or https",
+  "not valid JSON",
 ];
 
 export async function listJobsHandler(

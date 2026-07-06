@@ -263,6 +263,26 @@ describe("parseStructuredOutput", () => {
     });
   });
 
+  it("parses Hebrew field values inside a prose-wrapped fence", () => {
+    const raw = `הנה השדות שחילצתי:
+\`\`\`json
+{"title":"מפתח/ת Full Stack","company":"חברת טכנולוגיה בע\\"מ","jobNumber":"12345","description":"פיתוח מערכות web"}
+\`\`\``;
+    expect(
+      parseStructuredOutput<{
+        title: string;
+        company: string;
+        jobNumber: string;
+        description: string;
+      }>(raw),
+    ).toEqual({
+      title: "מפתח/ת Full Stack",
+      company: 'חברת טכנולוגיה בע"מ',
+      jobNumber: "12345",
+      description: "פיתוח מערכות web",
+    });
+  });
+
   it("throws on invalid JSON", () => {
     expect(() => parseStructuredOutput("not json")).toThrow("not valid JSON");
   });
